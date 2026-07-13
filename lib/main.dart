@@ -136,15 +136,15 @@ class LimitConfig {
   bool todoMaxLimit = false;
 }
 
-class AutoCalibConfig {
+class AutoCalibrationConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
   String sensorName = '';
-  double resetPos = 0.0;
+  double autoResetPos = 0.0;
   bool todoResetPos = false;
 }
 
-class CalibCmdConfig {
+class CalibrationCmdConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
   String sensorName = '';
@@ -173,8 +173,8 @@ class MechanismModel {
   
   List<PowerCommandConfig> powerCommands = [];
   List<LimitConfig> limits = [];
-  List<AutoCalibConfig> autoCalibrations = [];
-  List<CalibCmdConfig> calibrationCommands = [];
+  List<AutoCalibrationConfig> autoCalibrations = [];
+  List<CalibrationCmdConfig> calibrationCommands = [];
 
   // --- States ---
   bool useStates = false;
@@ -413,6 +413,7 @@ class _HomePageState extends State<HomePage> {
                     ExpansionTile(
                       title: const Text('Chassis Configuration'),
                       initiallyExpanded: true,
+                      maintainState: true,
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(16.0),
@@ -534,21 +535,27 @@ class _HomePageState extends State<HomePage> {
                                 children: [
                                   _buildGroupedTextField(
                                     label: 'steer kP', initialValue: _chassis.steerKP, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKP = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'steer kI', initialValue: _chassis.steerKI, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKI = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'steer kD', initialValue: _chassis.steerKD, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKD = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'steer kS', initialValue: _chassis.steerKS, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKS = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'steer kV', initialValue: _chassis.steerKV, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKV = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'steer kA', initialValue: _chassis.steerKA, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.steerKA = val,
                                   ),
                                 ],
                               ),
@@ -563,21 +570,27 @@ class _HomePageState extends State<HomePage> {
                                 children: [
                                   _buildGroupedTextField(
                                     label: 'drive kP', initialValue: _chassis.driveKP, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKP = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'drive kI', initialValue: _chassis.driveKI, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKI = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'drive kD', initialValue: _chassis.driveKD, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKD = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'drive kS', initialValue: _chassis.driveKS, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKS = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'drive kV', initialValue: _chassis.driveKV, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKV = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'drive kA', initialValue: _chassis.driveKA, defaultValue: 0.0,
+                                    onChanged: (val) => _chassis.driveKA = val,
                                   ),
                                 ],
                               ),
@@ -595,12 +608,15 @@ class _HomePageState extends State<HomePage> {
                                 children: [
                                   _buildGroupedTextField(
                                     label: 'Max Velocity', initialValue: _chassis.motionMagicVel, defaultValue: 100,
+                                    onChanged: (val) => _chassis.motionMagicVel = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'Max Acceleration', initialValue: _chassis.motionMagicAccel, defaultValue: 50,
+                                    onChanged: (val) => _chassis.motionMagicAccel = val,
                                   ),
                                   _buildGroupedTextField(
                                     label: 'Max Jerk', initialValue: _chassis.motionMagicJerk, defaultValue: 1000,
+                                    onChanged: (val) => _chassis.motionMagicJerk = val,
                                   )
                                 ],
                               ),
@@ -744,6 +760,8 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
+
+              const SizedBox(height: 400)
           ],
         ),
       ),
@@ -803,6 +821,7 @@ class _HomePageState extends State<HomePage> {
     required String label,
     required double? initialValue,
     required double defaultValue,
+    required Function(double) onChanged,
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
@@ -814,6 +833,10 @@ class _HomePageState extends State<HomePage> {
           isDense: true,
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        onChanged: (val) {
+          double parsed = double.tryParse(val) ?? defaultValue;
+          onChanged(parsed);
+        },
       ),
     );
   }
@@ -973,84 +996,93 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Use States Mechanism'),
+                  title: const Text('Use States Mechanism', style: TextStyle(fontWeight: FontWeight.bold)),
                   value: widget.mechanism.useStates,
                   onChanged: (val) => setState(() => widget.mechanism.useStates = val),
                 ),
-                if (widget.mechanism.useStates) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: DropdownButtonFormField<String>(
-                      value: widget.mechanism.statesType,
-                      decoration: const InputDecoration(labelText: 'States Type', border: OutlineInputBorder()),
-                      items: ['fixed states', 'dynamic states']
-                          .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                          .toList(),
-                      onChanged: (val) => setState(() => widget.mechanism.statesType = val!),
-                    ),
-                  ),
-                  ...widget.mechanism.states.map((stateCfg) => Card(
-                    color: Colors.grey[850],
-                    margin: const EdgeInsets.all(8.0),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                if (widget.mechanism.useStates)
+                  ExpansionTile(
+                    title: const Text('States Configuration'),
+                    initiallyExpanded: true,
+                    maintainState: true,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: DropdownButtonFormField<String>(
+                          value: widget.mechanism.statesType,
+                          decoration: const InputDecoration(labelText: 'States Type', border: OutlineInputBorder()),
+                          items: ['fixed states', 'dynamic states']
+                              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                              .toList(),
+                          onChanged: (val) => setState(() => widget.mechanism.statesType = val!),
+                        ),
+                      ),
+                      ...widget.mechanism.states.map((stateCfg) => Card(
+                        color: Colors.grey[850],
+                        margin: const EdgeInsets.all(8.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: stateCfg.name,
-                                  decoration: const InputDecoration(labelText: 'State Name', border: OutlineInputBorder(), isDense: true),
-                                  onChanged: (val) => stateCfg.name = val,
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      initialValue: stateCfg.name,
+                                      decoration: const InputDecoration(labelText: 'State Name', border: OutlineInputBorder(), isDense: true),
+                                      onChanged: (val) => stateCfg.name = val,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    onPressed: () => setState(() => widget.mechanism.states.remove(stateCfg)),
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () => setState(() => widget.mechanism.states.remove(stateCfg)),
-                              ),
+                              if (widget.mechanism.statesType == 'fixed states' && motorNames.isNotEmpty && motorNames.first != 'No Motors Available') ...[
+                                const SizedBox(height: 16),
+                                const Text('Motor Values for this State:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 8),
+                                ...motorNames.map((mName) {
+                                  stateCfg.motorValues.putIfAbsent(mName, () => 0.0);
+                                  stateCfg.todoMotorValues.putIfAbsent(mName, () => false);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 8.0, left: 16.0),
+                                    child: Row(
+                                      children: [
+                                        Expanded(flex: 2, child: Text(mName)),
+                                        _buildTodoFlag(
+                                          isTodo: stateCfg.todoMotorValues[mName]!,
+                                          onChanged: (val) => setState(() => stateCfg.todoMotorValues[mName] = val),
+                                        ),
+                                        Expanded(
+                                          flex: 3,
+                                          child: TextFormField(
+                                            initialValue: stateCfg.motorValues[mName].toString(),
+                                            decoration: const InputDecoration(labelText: 'Value', border: OutlineInputBorder(), isDense: true),
+                                            keyboardType: TextInputType.number,
+                                            onChanged: (val) => stateCfg.motorValues[mName] = double.tryParse(val) ?? 0.0,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
                             ],
                           ),
-                          if (widget.mechanism.statesType == 'fixed states' && motorNames.isNotEmpty && motorNames.first != 'No Motors Available') ...[
-                            const SizedBox(height: 16),
-                            const Text('Motor Values for this State:', style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            ...motorNames.map((mName) {
-                              stateCfg.motorValues.putIfAbsent(mName, () => 0.0);
-                              stateCfg.todoMotorValues.putIfAbsent(mName, () => false);
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8.0, left: 16.0),
-                                child: Row(
-                                  children: [
-                                    Expanded(flex: 2, child: Text(mName)),
-                                    _buildTodoFlag(
-                                      isTodo: stateCfg.todoMotorValues[mName]!,
-                                      onChanged: (val) => setState(() => stateCfg.todoMotorValues[mName] = val),
-                                    ),
-                                    Expanded(
-                                      flex: 3,
-                                      child: TextFormField(
-                                        initialValue: stateCfg.motorValues[mName].toString(),
-                                        decoration: const InputDecoration(labelText: 'Value', border: OutlineInputBorder(), isDense: true),
-                                        keyboardType: TextInputType.number,
-                                        onChanged: (val) => stateCfg.motorValues[mName] = double.tryParse(val) ?? 0.0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ],
-                        ],
+                        ),
+                      )),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: TextButton.icon(
+                          onPressed: () => setState(() => widget.mechanism.states.add(StateConfig())), 
+                          icon: const Icon(Icons.add), label: const Text('Add State')
+                        ),
                       ),
-                    ),
-                  )),
-                  TextButton.icon(
-                    onPressed: () => setState(() => widget.mechanism.states.add(StateConfig())), 
-                    icon: const Icon(Icons.add), label: const Text('Add State')
+                    ],
                   ),
-                ]
               ],
             ),
           ),
@@ -1064,6 +1096,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             color: Colors.grey[900],
             child: ExpansionTile(
               title: const Text('Limits', style: TextStyle(fontWeight: FontWeight.bold)),
+              maintainState: true,
               children: [
                 ...widget.mechanism.limits.map((limit) => Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -1124,6 +1157,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             color: Colors.grey[900],
             child: ExpansionTile(
               title: const Text('Power Commands', style: TextStyle(fontWeight: FontWeight.bold)),
+              maintainState: true,
               children: [
                 ...widget.mechanism.powerCommands.map((pCmd) => Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -1168,23 +1202,24 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             color: Colors.grey[900],
             child: ExpansionTile(
               title: const Text('Auto Calibrations', style: TextStyle(fontWeight: FontWeight.bold)),
+              maintainState: true,
               children: [
-                ...widget.mechanism.autoCalibrations.map((calib) => Padding(
+                ...widget.mechanism.autoCalibrations.map((autoCalibration) => Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: motorNames.contains(calib.motorName) ? calib.motorName : motorNames.first,
+                          value: motorNames.contains(autoCalibration.motorName) ? autoCalibration.motorName : motorNames.first,
                           decoration: const InputDecoration(labelText: 'Motor', border: OutlineInputBorder(), isDense: true),
                           items: motorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
-                          onChanged: (val) => setState(() => calib.motorName = val!),
+                          onChanged: (val) => setState(() => autoCalibration.motorName = val!),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: calib.atResetPosMethod,
+                          value: autoCalibration.atResetPosMethod,
                           decoration: const InputDecoration(
                             labelText: 'at ResetPos Method',
                             border: OutlineInputBorder(),
@@ -1192,41 +1227,41 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                           items: ['when sensor true', 'other']
                               .map((type) => DropdownMenuItem(value: type, child: Text(type)))
                               .toList(),
-                          onChanged: (val) => setState(() => calib.atResetPosMethod = val!),
+                          onChanged: (val) => setState(() => autoCalibration.atResetPosMethod = val!),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (calib.atResetPosMethod == "when sensor true")
+                      if (autoCalibration.atResetPosMethod == "when sensor true")
                           Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: sensorNames.contains(calib.sensorName) ? calib.sensorName : sensorNames.first,
+                            value: sensorNames.contains(autoCalibration.sensorName) ? autoCalibration.sensorName : sensorNames.first,
                             decoration: const InputDecoration(labelText: 'Sensor', border: OutlineInputBorder(), isDense: true),
                             items: sensorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
-                            onChanged: (val) => setState(() => calib.sensorName = val!),
+                            onChanged: (val) => setState(() => autoCalibration.sensorName = val!),
                           ),
                         ),
                       const SizedBox(width: 8),
                       _buildTodoFlag(
-                        isTodo: calib.todoResetPos,
-                        onChanged: (val) => setState(() => calib.todoResetPos = val),
+                        isTodo: autoCalibration.todoResetPos,
+                        onChanged: (val) => setState(() => autoCalibration.todoResetPos = val),
                       ),
                       Expanded(
                         child: TextFormField(
-                          initialValue: calib.resetPos.toString(),
-                          decoration: const InputDecoration(labelText: 'Reset Pos', border: OutlineInputBorder(), isDense: true),
+                          initialValue: autoCalibration.autoResetPos.toString(),
+                          decoration: const InputDecoration(labelText: 'Auto Reset Pos', border: OutlineInputBorder(), isDense: true),
                           keyboardType: TextInputType.number,
-                          onChanged: (val) => calib.resetPos = double.tryParse(val) ?? 0.0,
+                          onChanged: (val) => autoCalibration.autoResetPos = double.tryParse(val) ?? 0.0,
                         ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.redAccent),
-                        onPressed: () => setState(() => widget.mechanism.autoCalibrations.remove(calib)),
+                        onPressed: () => setState(() => widget.mechanism.autoCalibrations.remove(autoCalibration)),
                       ),
                     ],
                   ),
                 )),
                 TextButton.icon(
-                  onPressed: () => setState(() => widget.mechanism.autoCalibrations.add(AutoCalibConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
+                  onPressed: () => setState(() => widget.mechanism.autoCalibrations.add(AutoCalibrationConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
                   icon: const Icon(Icons.add), label: const Text('Add Auto Calibration')
                 ),
               ],
@@ -1238,6 +1273,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             color: Colors.grey[900],
             child: ExpansionTile(
               title: const Text('Calibration Commands', style: TextStyle(fontWeight: FontWeight.bold)),
+              maintainState: true,
               children: [
                 ...widget.mechanism.calibrationCommands.map((cmd) => Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -1355,7 +1391,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                   ),
                 )),
                 TextButton.icon(
-                  onPressed: () => setState(() => widget.mechanism.calibrationCommands.add(CalibCmdConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
+                  onPressed: () => setState(() => widget.mechanism.calibrationCommands.add(CalibrationCmdConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
                   icon: const Icon(Icons.add), label: const Text('Add Calibration Command')
                 ),
               ],
@@ -1368,46 +1404,56 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Generate Default Command'),
+                  title: const Text('Generate Default Command', style: TextStyle(fontWeight: FontWeight.bold)),
                   value: widget.mechanism.useDefaultCommand,
                   onChanged: (val) => setState(() => widget.mechanism.useDefaultCommand = val),
                 ),
-                if (widget.mechanism.useDefaultCommand && motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
-                  ...motorNames.map((mName) {
-                    widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(child: Text(mName)),
-                          Expanded(
-                            flex: 2,
-                            child: DropdownButtonFormField<String>(
-                              value: widget.mechanism.defaultControlModes[mName],
-                              decoration: const InputDecoration(
-                                labelText: 'Control Mode', 
-                                border: OutlineInputBorder(), 
-                                isDense: true
-                              ),
-                              items: [
-                                'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
-                                'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
-                              ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
-                              onChanged: (val) => setState(() => widget.mechanism.defaultControlModes[mName] = val!),
+                if (widget.mechanism.useDefaultCommand)
+                  ExpansionTile(
+                    title: const Text('Default Command Configuration'),
+                    initiallyExpanded: true,
+                    maintainState: true,
+                    children: [
+                      if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
+                        ...motorNames.map((mName) {
+                          widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(mName)),
+                                Expanded(
+                                  flex: 2,
+                                  child: DropdownButtonFormField<String>(
+                                    value: widget.mechanism.defaultControlModes[mName],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Control Mode', 
+                                      border: OutlineInputBorder(), 
+                                      isDense: true
+                                    ),
+                                    items: [
+                                      'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
+                                      'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
+                                    ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
+                                    onChanged: (val) => setState(() => widget.mechanism.defaultControlModes[mName] = val!),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                if (widget.mechanism.useDefaultCommand && (motorNames.isEmpty || motorNames.first == 'No Motors Available'))
-                  const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('Add motors to assign control modes.', style: TextStyle(color: Colors.grey)),
-                  )
+                          );
+                        }),
+                      if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('Add motors to assign control modes.', style: TextStyle(color: Colors.grey)),
+                        )
+                    ],
+                  ),
               ],
             ),
           ),
+
+          const SizedBox(height: 400)
         ],
       ),
     );
@@ -1759,11 +1805,6 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                 onChanged: (v) => widget.motor.maxJerk = v,
                 markAsUsed: () => setState(() => widget.motor.useMotionMagic = true),
               ),
-              _buildGroupedTextField(
-                label: 'Max Position Error', initialValue: widget.motor.maxPositionError, defaultValue: 0.5,
-                onChanged: (v) => widget.motor.maxPositionError = v,
-                markAsUsed: () => setState(() => widget.motor.useMotionMagic = true),
-              ),
             ],
           ),
 
@@ -1797,6 +1838,8 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
               ),
             ],
           ),
+
+          const SizedBox(height: 400)
         ],
       ),
     );
@@ -2142,6 +2185,8 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                 ),
               ],
             ),
+            
+            const SizedBox(height: 400)
           ]
         ],
       ),
@@ -2345,10 +2390,10 @@ class JavaCodeGenerator {
       files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
     }
 
-    for (var calib in mech.calibrationCommands) {
-      String motorNameCap = _capitalize(calib.motorName.replaceAll(' ', ''));
+    for (var calibration in mech.calibrationCommands) {
+      String motorNameCap = _capitalize(calibration.motorName.replaceAll(' ', ''));
       String cmdName = '${motorNameCap}CalibrationCommand';
-      files['$mechNameLower/commands/$cmdName.java'] = _generateCalibrationCommand(mech, calib, mechNameCap, mechNameLower, cmdName);
+      files['$mechNameLower/commands/$cmdName.java'] = _generateCalibrationCommand(mech, calibration, mechNameCap, mechNameLower, cmdName);
     }
 
     return files;
@@ -2448,7 +2493,6 @@ class JavaCodeGenerator {
         sb.writeln('        public static final double ${mConst}_MAX_VELOCITY = ${motor.maxVelocity};$t');
         sb.writeln('        public static final double ${mConst}_MAX_ACCELERATION = ${motor.maxAcceleration};$t');
         sb.writeln('        public static final double ${mConst}_MAX_JERK = ${motor.maxJerk};$t');
-        sb.writeln('        public static final double ${mConst}_MAX_POSITION_ERROR = ${motor.maxPositionError};$t');
       }
       if (motor.useStallDetection) {
         String t = _todo(motor.todoStallDetection);
@@ -2479,19 +2523,19 @@ class JavaCodeGenerator {
         sb.writeln('            .withRadiansMotor(${mConst}_GEAR_RATIO)');
       }
       if (motor.useMeterMotor) {
-        sb.writeln('            .withMeterMotor(${mConst}_GEAR_RATIO), ${mConst}_DIAMETER)');
+        sb.writeln('            .withMeterMotor(${mConst}_GEAR_RATIO, ${mConst}_DIAMETER)');
       }
       
       if (motor.usePIDFF) {
-         sb.write('            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD),${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG)');
+         sb.write('            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG)');
          }
       if (motor.useAdvancedFF) {
          sb.writeln('');
-         sb.write('            .withAdvancedFF(${mConst}_KV2, ${mConst}_KSIN)');
+         sb.write('            .withFeedForward(${mConst}_KV2, ${mConst}_KSIN)');
       }
       if (motor.useMotionMagic) {
          sb.writeln('');
-         sb.write('            .withMotionMagic(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK, ${mConst}_MAX_POSITION_ERROR)');
+         sb.write('            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK');
       }
       if (motor.useStallDetection) {
          sb.writeln('');
@@ -2507,13 +2551,13 @@ class JavaCodeGenerator {
       }
 
       // Calibration Constants
-      var calibCmd = mech.calibrationCommands.where((c) => c.motorName == motor.name).firstOrNull;
-      var autoCalib = mech.autoCalibrations.where((c) => c.motorName == motor.name).firstOrNull;
-      if (calibCmd != null) {
-        sb.writeln('        public static final double ${mConst}_CALIBRATION_POWER = ${calibCmd.power};${_todo(calibCmd.todoPower)}');
-        sb.writeln('        public static final double ${mConst}_CALIBRATION_RESET_POS = ${calibCmd.resetPos};${_todo(calibCmd.todoResetPos)}');
-      } else if (autoCalib != null) {
-        sb.writeln('        public static final double ${mConst}_CALIBRATION_RESET_POS = ${autoCalib.resetPos};${_todo(autoCalib.todoResetPos)}');
+      var calibrationCmd = mech.calibrationCommands.where((c) => c.motorName == motor.name).firstOrNull;
+      var autoCalibration = mech.autoCalibrations.where((c) => c.motorName == motor.name).firstOrNull;
+      if (calibrationCmd != null) {
+        sb.writeln('        public static final double ${mConst}_CALIBRATION_POWER = ${calibrationCmd.power};${_todo(calibrationCmd.todoPower)}');
+        sb.writeln('        public static final double ${mConst}_CALIBRATION_RESET_POS = ${calibrationCmd.resetPos};${_todo(calibrationCmd.todoResetPos)}');
+      } else if (autoCalibration != null) {
+        sb.writeln('        public static final double ${mConst}_CALIBRATION_RESET_POS = ${autoCalibration.autoResetPos};${_todo(autoCalibration.todoResetPos)}');
       }
       sb.writeln('    }');
       sb.writeln('');
@@ -2578,7 +2622,7 @@ class JavaCodeGenerator {
         }
         sb.writeln('        public static final boolean ${sConst}_COMPASS = ${sensor.compass};${_todo(sensor.todoCompass)}');
         sb.writeln('        public static final boolean ${sConst}_TEMP_COMP = ${sensor.tempCompensation};${_todo(sensor.todoTempComp)}');
-        sb.writeln('        public static final boolean ${sConst}_NO_MOTION_CALIB = ${sensor.noMotionCalibration};${_todo(sensor.todoNoMotion)}');
+        sb.writeln('        public static final boolean ${sConst}_NO_MOTION_CALIBRATION = ${sensor.noMotionCalibration};${_todo(sensor.todoNoMotion)}');
       }
       
       // Construct configArgs correctly based on constructor definitions
@@ -2814,27 +2858,27 @@ class JavaCodeGenerator {
 
     // Calibration condition methods
     Set<String> calibMotors = {};
-    for (var calib in mech.autoCalibrations) calibMotors.add(calib.motorName);
-    for (var calib in mech.calibrationCommands) calibMotors.add(calib.motorName);
+    for (var calibration in mech.autoCalibrations) calibMotors.add(calibration.motorName);
+    for (var calibration in mech.calibrationCommands) calibMotors.add(calibration.motorName);
 
     for (String motorName in calibMotors) {
-      dynamic calib;
+      dynamic calibration;
       for (var c in mech.autoCalibrations) {
-        if (c.motorName == motorName) calib = c;
+        if (c.motorName == motorName) calibration = c;
       }
-      if (calib == null) {
+      if (calibration == null) {
         for (var c in mech.calibrationCommands) {
-          if (c.motorName == motorName) calib = c;
+          if (c.motorName == motorName) calibration = c;
         }
       }
 
-      if (calib != null) {
+      if (calibration != null) {
         String motorNameCap = _capitalize(motorName.replaceAll(' ', ''));
         sb.writeln('    public boolean at${motorNameCap}ResetPos() {');
-        if (calib.atResetPosMethod == 'when sensor true') {
+        if (calibration.atResetPosMethod == 'when sensor true') {
           dynamic sensor;
           for (var s in mech.sensors) {
-            if (s.name == calib.sensorName) sensor = s;
+            if (s.name == calibration.sensorName) sensor = s;
           }
           
           if (sensor != null) {
@@ -2889,7 +2933,7 @@ class JavaCodeGenerator {
     return sb.toString();
   }
 
-  static String _generateCalibrationCommand(MechanismModel mech, CalibCmdConfig calib, String mechNameCap, String mechNameLower, String cmdName) {
+  static String _generateCalibrationCommand(MechanismModel mech, CalibrationCmdConfig calib, String mechNameCap, String mechNameLower, String cmdName) {
     StringBuffer sb = StringBuffer();
     String motorNameCap = _capitalize(calib.motorName.replaceAll(' ', ''));
     String mClass = '${motorNameCap}Constants';
