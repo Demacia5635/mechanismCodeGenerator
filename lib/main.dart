@@ -2185,7 +2185,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 400)
           ]
         ],
@@ -2727,7 +2727,7 @@ class JavaCodeGenerator {
 
   static String _generateSubsystem(MechanismModel mech, String mechNameCap, String mechNameLower) {
     StringBuffer sb = StringBuffer();
-    String mechConstName = '${mechNameCap}Constants.${_constantize(mech.name)}_NAME';
+    String mechConstName = '${_constantize(mech.name)}_NAME';
 
     sb.writeln('package frc.robot.$mechNameLower.subsystems;');
     sb.writeln('');
@@ -2755,8 +2755,7 @@ class JavaCodeGenerator {
       sb.writeln('import frc.robot.RobotContainer;');
     }
 
-    sb.writeln('import frc.robot.$mechNameLower.${mechNameCap}Constants;');
-    sb.writeln('import frc.robot.$mechNameLower.${mechNameCap}Constants.*;');
+    sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.*;');
     
     // Static imports for Constants
     for (var motor in mech.motors) {
@@ -2825,10 +2824,25 @@ class JavaCodeGenerator {
       sb.writeln('        withPowerCommand(${mConst}_NAME, () -> $supplierLogic);');
     }
 
+    // Auto Calibrations
+    for (var autoCal in mech.autoCalibrations) {
+      String mConst = _constantize(autoCal.motorName.replaceAll(' ', ''));
+      String motorNameCap = _capitalize(autoCal.motorName.replaceAll(' ', ''));
+
+      bool reuseCmdMethod = false;
+      var cmdCal = mech.calibrationCommands.where((c) => c.motorName == autoCal.motorName).firstOrNull;
+      if (cmdCal != null && cmdCal.atResetPosMethod == autoCal.atResetPosMethod && cmdCal.sensorName == autoCal.sensorName) {
+        reuseCmdMethod = true;
+      }
+
+      String methodName = reuseCmdMethod ? 'at${motorNameCap}ResetPos' : 'at${motorNameCap}AutoResetPos';
+
+      sb.writeln('        withAutoCalibration(${mConst}_NAME, this::$methodName, ${mConst}_CALIBRATION_RESET_POS);');
+    }
+
     sb.writeln('    }');
     sb.writeln('');
 
-    // getInstance() immediately after constructor
     sb.writeln('    public static $mechNameCap getInstance() {');
     sb.writeln('        if (instance == null) {');
     sb.writeln('            instance = new $mechNameCap();');
@@ -2856,49 +2870,42 @@ class JavaCodeGenerator {
       sb.writeln('');
     }
 
-    // Calibration condition methods
-    Set<String> calibMotors = {};
-    for (var calibration in mech.autoCalibrations) calibMotors.add(calibration.motorName);
-    for (var calibration in mech.calibrationCommands) calibMotors.add(calibration.motorName);
-
-    for (String motorName in calibMotors) {
-      dynamic calibration;
-      for (var c in mech.autoCalibrations) {
-        if (c.motorName == motorName) calibration = c;
-      }
-      if (calibration == null) {
-        for (var c in mech.calibrationCommands) {
-          if (c.motorName == motorName) calibration = c;
-        }
-      }
-
-      if (calibration != null) {
-        String motorNameCap = _capitalize(motorName.replaceAll(' ', ''));
-        sb.writeln('    public boolean at${motorNameCap}ResetPos() {');
-        if (calibration.atResetPosMethod == 'when sensor true') {
-          dynamic sensor;
-          for (var s in mech.sensors) {
-            if (s.name == calibration.sensorName) sensor = s;
-          }
-          
-          if (sensor != null) {
-            String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
-            String sConst = _constantize(sBaseName);
-            
-            if (sensor.sensorType == 'LimitSwitch') {
-              sb.writeln('        return ((LimitSwitch) getSensor(${sConst}_NAME)).get();');
-            } else {
-              sb.writeln('        return ((${sensor.sensorType}) getSensor(${sConst}_NAME)).getBoolean(); // TODO check method name for this sensor');
-            }
-          } else {
-            sb.writeln('        return false; // TODO Sensor not found');
-          }
+    void writeConditionMethod(String methodName, String methodType, String sensorName) {
+      sb.writeln('    public boolean $methodName() {');
+      if (methodType == 'when sensor true') {
+        var sensor = mech.sensors.where((s) => s.name == sensorName).firstOrNull;
+        if (sensor != null) {
+          String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
+          String sConst = _constantize(sBaseName);
+          sb.writeln('        return ((${sensor.sensorType}) getSensor(${sConst}_NAME)).getBoolean();');
         } else {
-          sb.writeln('        // TODO Auto-generated method stub');
-          sb.writeln('        return false;');
+          sb.writeln('        return false; // TODO Sensor not found');
         }
-        sb.writeln('    }');
-        sb.writeln('');
+      } else {
+        sb.writeln('        // TODO Auto-generated method stub');
+        sb.writeln('        throw new UnsupportedOperationException("Unimplemented method \'$methodName()\'");');
+      }
+      sb.writeln('    }');
+      sb.writeln('');
+    }
+
+    for (var cmdCal in mech.calibrationCommands) {
+      String motorNameCap = _capitalize(cmdCal.motorName.replaceAll(' ', ''));
+      writeConditionMethod('at${motorNameCap}ResetPos', cmdCal.atResetPosMethod, cmdCal.sensorName);
+    }
+
+    for (var autoCal in mech.autoCalibrations) {
+      String motorNameCap = _capitalize(autoCal.motorName.replaceAll(' ', ''));
+      
+      var cmdCal = mech.calibrationCommands.where((cmd) => cmd.motorName == autoCal.motorName).firstOrNull;
+      bool isDifferent = true;
+      
+      if (cmdCal != null && cmdCal.atResetPosMethod == autoCal.atResetPosMethod && cmdCal.sensorName == autoCal.sensorName) {
+        isDifferent = false;
+      }
+
+      if (isDifferent) {
+        writeConditionMethod('at${motorNameCap}AutoResetPos', autoCal.atResetPosMethod, autoCal.sensorName);
       }
     }
 
