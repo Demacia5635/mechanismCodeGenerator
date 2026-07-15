@@ -2765,6 +2765,14 @@ class JavaCodeGenerator {
     }
 
     sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.*;');
+
+    if (mech.calibrationCommands.isNotEmpty) {
+      sb.writeln('import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;');
+      for (var cal in mech.calibrationCommands) {
+        if (cal.motorName == 'No Motors Available') continue;
+        sb.writeln('import frc.robot.$mechNameLower.commands.${cal.motorName[0].toUpperCase() + cal.motorName.substring(1)}CalibrationCommand;');
+      }
+    }
     
     for (var motor in mech.motors) {
       String mClass = '${_capitalize(motor.name.replaceAll(' ', ''))}Constants';
@@ -2842,6 +2850,13 @@ class JavaCodeGenerator {
       String methodName = reuseCmdMethod ? 'at${motorNameCap}ResetPos' : 'at${motorNameCap}AutoResetPos';
 
       sb.writeln('        withAutoCalibration(${mConst}_NAME, this::$methodName, ${mConst}_AUTO_CALIBRATION_RESET_POS);');
+    }
+
+    for (var cal in mech.calibrationCommands) {
+      if (cal.motorName == 'No Motors Available') continue;
+      String mConst = _constantize(cal.motorName.replaceAll(' ', ''));
+      String mechNameConst = _constantize(mech.name.replaceAll(' ', ''));
+      sb.writeln('        SmartDashboard.putData(${mechNameConst}_NAME + "/" + ${mConst}_NAME + " Calibration Command", new ${cal.motorName[0].toUpperCase() + cal.motorName.substring(1)}CalibrationCommand(this));');
     }
 
     sb.writeln('    }');
