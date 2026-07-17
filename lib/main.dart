@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MechanismGeneratorApp());
@@ -201,7 +202,7 @@ class MechanismModel {
         names.add(n.isEmpty ? 'Unnamed Sensor ${i + 1}' : n);
       }
     }
-    return names.isEmpty ? ['No Sensors Available'] : names;
+    return names.isEmpty ? ['No Limit Switch Available'] : names;
   }
 }
 
@@ -268,6 +269,134 @@ class RobotContainerModel {
   String anotherChassisClassName = '';
 }
 
+class FirstCharNotDigitFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isNotEmpty &&
+        RegExp(r'^\d').hasMatch(newValue.text)) {
+      return oldValue;
+    }
+
+    return newValue;
+  }
+}
+
+class AppTextField extends StatelessWidget {
+  const AppTextField({
+    super.key,
+    this.onChanged,
+    this.decoration,
+    this.autofocus = false,
+  });
+
+  final ValueChanged<String>? onChanged;
+  final InputDecoration? decoration;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      autofocus: autofocus,
+      decoration: decoration,
+      onChanged: onChanged,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(r'[A-Za-z0-9_ ]'),
+        ),
+        FirstCharNotDigitFormatter(),
+      ],
+    );
+  }
+}
+
+class AppTextFormField extends StatelessWidget {
+  const AppTextFormField({
+    super.key,
+    this.controller,
+    this.initialValue,
+    this.validator,
+    this.onChanged,
+    this.decoration,
+    this.keyboardType,
+    this.obscureText = false,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController? controller;
+  final String? initialValue;
+  final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final InputDecoration? decoration;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      decoration: decoration,
+      validator: validator,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      maxLines: maxLines,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(r'[A-Za-z0-9_ ]'),
+        ),
+        FirstCharNotDigitFormatter(),
+      ],
+    );
+  }
+}
+
+class DoubleTextFormField extends StatelessWidget {
+  const DoubleTextFormField({
+    super.key,
+    this.controller,
+    this.initialValue,
+    this.validator,
+    this.onChanged,
+    this.decoration,
+    this.keyboardType,
+    this.obscureText = false,
+    this.maxLines = 1,
+  });
+
+  final TextEditingController? controller;
+  final String? initialValue;
+  final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final InputDecoration? decoration;
+  final TextInputType? keyboardType;
+  final bool obscureText;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      decoration: decoration,
+      validator: validator,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      maxLines: maxLines,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+          RegExp(r'^\d*\.?\d*'),
+        ),
+      ],
+    );
+  }
+}
+
 // ==========================================
 // MAIN APP
 // ==========================================
@@ -314,7 +443,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Create New Mechanism'),
-          content: TextField(
+          content: AppTextField(
             autofocus: true,
             decoration: const InputDecoration(
               labelText: 'Mechanism Name',
@@ -440,7 +569,7 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: TextFormField(
+                                    child: AppTextFormField(
                                       initialValue: _chassis.name,
                                       decoration: const InputDecoration(labelText: 'Chassis Name', border: OutlineInputBorder()),
                                       onChanged: (val) => _chassis.name = val,
@@ -456,6 +585,9 @@ class _HomePageState extends State<HomePage> {
                                       initialValue: _chassis.pigeonId,
                                       decoration: const InputDecoration(labelText: 'Pigeon ID', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
                                       onChanged: (val) => _chassis.pigeonId = val,
                                     ),
                                   ),
@@ -499,11 +631,13 @@ class _HomePageState extends State<HomePage> {
                                     onChanged: (val) => setState(() => _chassis.todoSteerGearRatio = val),
                                   ),
                                   Expanded(
-                                    child: TextFormField(
+                                    child: DoubleTextFormField(
                                       initialValue: _chassis.steerGearRatio.toString(),
                                       decoration: const InputDecoration(labelText: 'Steer Gear Ratio', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
-                                      onChanged: (val) => _chassis.steerGearRatio = double.parse(val),
+                                      onChanged: (val) {
+                                        _chassis.steerGearRatio = double.tryParse(val) ?? 0;
+                                      },
                                     ),
                                   ),
                                 ]
@@ -516,11 +650,13 @@ class _HomePageState extends State<HomePage> {
                                     onChanged: (val) => setState(() => _chassis.todoDriveGearRatio = val),
                                   ),
                                   Expanded(
-                                    child: TextFormField(
+                                    child: DoubleTextFormField(
                                       initialValue: _chassis.driveGearRatio.toString(),
                                       decoration: const InputDecoration(labelText: 'Drive Gear Ratio', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
-                                      onChanged: (val) => _chassis.driveGearRatio = double.parse(val),
+                                      onChanged: (val) {
+                                        _chassis.driveGearRatio = double.tryParse(val) ?? 0;
+                                      },
                                     ),
                                   ),
                                 ]
@@ -533,11 +669,15 @@ class _HomePageState extends State<HomePage> {
                                     onChanged: (val) => setState(() => _chassis.todoWheelDiameter = val),
                                   ),
                                   Expanded(
-                                    child: TextFormField(
+                                    child: DoubleTextFormField(
                                       initialValue: _chassis.wheelDiameter.toString(),
                                       decoration: const InputDecoration(labelText: 'Wheel Diameter', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
-                                      onChanged: (val) => _chassis.wheelDiameter = double.parse(val),
+                                      onChanged: (val) {
+                                        if (val.isNotEmpty) {
+                                          _chassis.wheelDiameter = double.tryParse(val) ?? 0;
+                                        }
+                                      },
                                     ),
                                   ),
                                 ]
@@ -648,11 +788,15 @@ class _HomePageState extends State<HomePage> {
                                     onChanged: (val) => setState(() => _chassis.todoMaxDriveVelocity = val),
                                   ),
                                   Expanded(
-                                    child: TextFormField(
+                                    child: DoubleTextFormField(
                                       initialValue: _chassis.maxDriveVelocity.toString(),
                                       decoration: const InputDecoration(labelText: 'Max Drive Velocity', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
-                                      onChanged: (val) => _chassis.maxDriveVelocity = double.parse(val),
+                                      onChanged: (val) {
+                                        if (val.isNotEmpty) {
+                                          _chassis.maxDriveVelocity = double.tryParse(val) ?? 0;
+                                        }
+                                      },
                                     ),
                                   ),
                                 ],
@@ -665,11 +809,13 @@ class _HomePageState extends State<HomePage> {
                                     onChanged: (val) => setState(() => _chassis.todoRampTimeSteer = val),
                                   ),
                                   Expanded(
-                                    child: TextFormField(
+                                    child: DoubleTextFormField(
                                       initialValue: _chassis.rampTimeSteer.toString(),
                                       decoration: const InputDecoration(labelText: 'Ramp Time (Steer)', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
-                                      onChanged: (val) => _chassis.rampTimeSteer = double.parse(val),
+                                      onChanged: (val) {
+                                        _chassis.rampTimeSteer = double.tryParse(val) ?? 0;
+                                      },
                                     ),
                                   ),
                                 ],
@@ -685,13 +831,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.flX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.flY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.flOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -702,13 +848,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.frX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.frY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.frOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -719,13 +865,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.blX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.blY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.blOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -736,13 +882,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.brX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.brY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: TextFormField(initialValue: _chassis.brOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
                               const SizedBox(height: 24),
@@ -830,6 +976,12 @@ class _HomePageState extends State<HomePage> {
                                     initialValue:_robotContainer.anotherChassisClassName,
                                     decoration: const InputDecoration(labelText: 'Chassis Class Name', border: OutlineInputBorder(),),
                                     onChanged: (val) {_robotContainer.anotherChassisClassName = val;},
+                                    inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[A-Za-z0-9_]'),
+                                    ),
+                                    FirstCharNotDigitFormatter(),
+                                  ],
                                   ),
                                 ],
                               ],
@@ -905,7 +1057,7 @@ class _HomePageState extends State<HomePage> {
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
-      child: TextFormField(
+      child: DoubleTextFormField(
         initialValue: initialValue?.toString() ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
@@ -992,7 +1144,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          TextFormField(
+          AppTextFormField(
             initialValue: widget.mechanism.name,
             decoration: const InputDecoration(
               labelText: 'Mechanism Name',
@@ -1108,7 +1260,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: TextFormField(
+                                    child: AppTextFormField(
                                       initialValue: stateCfg.name,
                                       decoration: const InputDecoration(labelText: 'State Name', border: OutlineInputBorder(), isDense: true),
                                       onChanged: (val) => stateCfg.name = val,
@@ -1137,7 +1289,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                                         ),
                                         Expanded(
                                           flex: 3,
-                                          child: TextFormField(
+                                          child: DoubleTextFormField(
                                             initialValue: stateCfg.motorValues[mName].toString(),
                                             decoration: const InputDecoration(labelText: 'Value', border: OutlineInputBorder(), isDense: true),
                                             keyboardType: TextInputType.number,
@@ -1196,7 +1348,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                         onChanged: (val) => setState(() => limit.todoMinLimit = val),
                       ),
                       Expanded(
-                        child: TextFormField(
+                        child: DoubleTextFormField(
                           initialValue: limit.minLimit.toString(),
                           decoration: const InputDecoration(labelText: 'Min Limit', border: OutlineInputBorder(), isDense: true),
                           keyboardType: TextInputType.number,
@@ -1209,7 +1361,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                         onChanged: (val) => setState(() => limit.todoMaxLimit = val),
                       ),
                       Expanded(
-                        child: TextFormField(
+                        child: DoubleTextFormField(
                           initialValue: limit.maxLimit.toString(),
                           decoration: const InputDecoration(labelText: 'Max Limit', border: OutlineInputBorder(), isDense: true),
                           keyboardType: TextInputType.number,
@@ -1325,7 +1477,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                         onChanged: (val) => setState(() => autoCalibration.todoResetPos = val),
                       ),
                       Expanded(
-                        child: TextFormField(
+                        child: DoubleTextFormField(
                           initialValue: autoCalibration.autoResetPos.toString(),
                           decoration: const InputDecoration(labelText: 'Auto Reset Pos', border: OutlineInputBorder(), isDense: true),
                           keyboardType: TextInputType.number,
@@ -1407,7 +1559,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                             onChanged: (val) => setState(() => cmd.todoPower = val),
                           ),
                           Expanded(
-                            child: TextFormField(
+                            child: DoubleTextFormField(
                               initialValue: cmd.power.toString(),
                               decoration: const InputDecoration(labelText: 'Power', border: OutlineInputBorder(), isDense: true),
                               keyboardType: TextInputType.number,
@@ -1420,7 +1572,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                             onChanged: (val) => setState(() => cmd.todoResetPos = val),
                           ),
                           Expanded(
-                            child: TextFormField(
+                            child: DoubleTextFormField(
                               initialValue: cmd.resetPos.toString(),
                               decoration: const InputDecoration(labelText: 'Reset Pos', border: OutlineInputBorder(), isDense: true),
                               keyboardType: TextInputType.number,
@@ -1443,7 +1595,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                               onChanged: (val) => setState(() => cmd.todoStartPower = val),
                             ),
                             Expanded(
-                              child: TextFormField(
+                              child: DoubleTextFormField(
                                 initialValue: cmd.startPower.toString(),
                                 decoration: const InputDecoration(labelText: 'Start Power', border: OutlineInputBorder(), isDense: true),
                                 keyboardType: TextInputType.number,
@@ -1456,7 +1608,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                               onChanged: (val) => setState(() => cmd.todoStartDelay = val),
                             ),
                             Expanded(
-                              child: TextFormField(
+                              child: DoubleTextFormField(
                                 initialValue: cmd.startDelaySec.toString(),
                                 decoration: const InputDecoration(labelText: 'Start Delay (sec)', border: OutlineInputBorder(), isDense: true),
                                 keyboardType: TextInputType.number,
@@ -1568,7 +1720,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
           Row(
             children: [
               Expanded(
-                child: TextFormField(
+                child: AppTextFormField(
                   initialValue: widget.motor.name,
                   decoration: const InputDecoration(labelText: 'Motor Name', border: OutlineInputBorder()),
                   onChanged: (val) => widget.motor.name = val,
@@ -1587,6 +1739,9 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                         initialValue: widget.motor.id,
                         decoration: const InputDecoration(labelText: 'ID', border: OutlineInputBorder()),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         onChanged: (val) => widget.motor.id = val,
                       ),
                     ),
@@ -1717,7 +1872,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                     onChanged: (val) => setState(() => widget.motor.todoGearRatio = val),
                   ),
                   Expanded(
-                    child: TextFormField(
+                    child: DoubleTextFormField(
                       initialValue: widget.motor.gearRatio.toString(),
                       decoration: const InputDecoration(labelText: 'Gear Ratio', border: OutlineInputBorder(), isDense: true),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -1752,7 +1907,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                         onChanged: (val) => setState(() => widget.motor.todoGearRatio = val),
                       ),
                       Expanded(
-                        child: TextFormField(
+                        child: DoubleTextFormField(
                           initialValue: widget.motor.gearRatio.toString(),
                           decoration: const InputDecoration(labelText: 'Gear Ratio', border: OutlineInputBorder(), isDense: true),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -1769,7 +1924,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                         onChanged: (val) => setState(() => widget.motor.todoDiameter = val),
                       ),
                       Expanded(
-                        child: TextFormField(
+                        child: DoubleTextFormField(
                           initialValue: widget.motor.diameter.toString(),
                           decoration: const InputDecoration(labelText: 'Diameter (Meters)', border: OutlineInputBorder(), isDense: true),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
@@ -1970,7 +2125,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
-      child: TextFormField(
+      child: DoubleTextFormField(
         initialValue: initialValue?.toString() ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
@@ -2029,7 +2184,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
           Row(
             children: [
               Expanded(
-                child: TextFormField(
+                child: AppTextFormField(
                   initialValue: widget.sensor.name,
                   decoration: const InputDecoration(labelText: 'Sensor Name', border: OutlineInputBorder()),
                   onChanged: (val) => widget.sensor.name = val,
@@ -2051,6 +2206,9 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                           border: const OutlineInputBorder()
                         ),
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         onChanged: (val) => widget.sensor.idOrPort = val,
                       ),
                     ),
@@ -2199,6 +2357,9 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                     initialValue: widget.sensor.pingChannel,
                     decoration: const InputDecoration(labelText: 'Ping Channel', border: OutlineInputBorder()),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
                     onChanged: (val) => widget.sensor.pingChannel = val,
                   ),
                 ),
@@ -2318,7 +2479,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
-      child: TextFormField(
+      child: DoubleTextFormField(
         initialValue: initialValue?.toString() ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
@@ -2414,7 +2575,7 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
             padding: const EdgeInsets.only(right: 8.0),
           ),
           Expanded(
-            child: TextFormField(
+            child: DoubleTextFormField(
               controller: _controller,
               decoration: InputDecoration(
                 labelText: widget.label,
