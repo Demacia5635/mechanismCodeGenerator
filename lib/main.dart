@@ -264,6 +264,8 @@ class ChassisModel {
 class RobotContainerModel {
   bool makeRobotContainer = false;
   String controllerType = 'PS5';
+  bool useAnotherChassis = false;
+  String anotherChassisClassName = '';
 }
 
 // ==========================================
@@ -789,37 +791,52 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Generate Built-in RobotContainer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      title: const Text('Generate Built-in RobotContainer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,),),
                       value: _robotContainer.makeRobotContainer,
-                      onChanged: (val) => setState(() => _robotContainer.makeRobotContainer = val),
+                      onChanged: (val) {setState(() {_robotContainer.makeRobotContainer = val;});},
                     ),
                     if (_robotContainer.makeRobotContainer)
-                    ExpansionTile(
-                      title: const Text('RobotContainer Configuration'),
-                      initiallyExpanded: true,
-                      maintainState: true,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      value: _robotContainer.controllerType,
-                                      decoration: const InputDecoration(labelText: 'Controller Type', border: OutlineInputBorder()),
-                                      items: ['PS5', 'Xbox'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                                      onChanged: (val) => setState(() => _robotContainer.controllerType = val!),
-                                    ),
+                      ExpansionTile(
+                        title: const Text('RobotContainer Configuration'),
+                        initiallyExpanded: true,
+                        maintainState: true,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                DropdownButtonFormField<String>(
+                                  value: _robotContainer.controllerType,
+                                  decoration: const InputDecoration(labelText: 'Controller Type', border: OutlineInputBorder(),),
+                                  items: const [
+                                    DropdownMenuItem(value: 'PS5', child: Text('PS5'),),
+                                    DropdownMenuItem(value: 'Xbox', child: Text('Xbox'),),
+                                  ],
+                                  onChanged: (val) {
+                                    setState(() {_robotContainer.controllerType = val!;});
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Use another chassis', style: TextStyle(fontWeight: FontWeight.bold),),
+                                  value: _robotContainer.useAnotherChassis,
+                                  onChanged: (val) {setState(() {_robotContainer.useAnotherChassis = val;});},
+                                ),
+                                if (_robotContainer.useAnotherChassis) ...[
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    initialValue:_robotContainer.anotherChassisClassName,
+                                    decoration: const InputDecoration(labelText: 'Chassis Class Name', border: OutlineInputBorder(),),
+                                    onChanged: (val) {_robotContainer.anotherChassisClassName = val;},
                                   ),
                                 ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -3187,10 +3204,10 @@ class JavaCodeGenerator {
     sb.writeln('import frc.demacia.utils.controller.CommandController;');
     sb.writeln('import frc.demacia.utils.controller.CommandController.ControllerType;');
     sb.writeln('import edu.wpi.first.wpilibj2.command.Command;');
-    if (chassis.makeChassis) {
+    if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('import frc.demacia.utils.chassis.Chassis;');
       sb.writeln('import frc.demacia.utils.chassis.DriveCommand;');
-      sb.writeln('import frc.robot.chassis.${_capitalize(chassis.name)}ChassisConstants;');
+      sb.writeln('import frc.robot.chassis.${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${_capitalize(chassis.name)}ChassisConstants'};');
     }
     for (var mech in mechanisms) {
       sb.writeln('import frc.robot.${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.subsystems.${_capitalize(mech.name)};');
@@ -3215,7 +3232,7 @@ class JavaCodeGenerator {
     for (var mech in mechanisms) {
       sb.writeln('  private ${_capitalize(mech.name)} ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)};');
     }
-    if (chassis.makeChassis) {
+    if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('  public static DriveCommand driveCommand;');
     }
     sb.writeln('');
@@ -3224,8 +3241,8 @@ class JavaCodeGenerator {
     sb.writeln('   */');
     sb.writeln('  public RobotContainer() {');
     sb.writeln('    SmartDashboard.putData("RC", this);');
-    if (chassis.makeChassis) {
-      sb.writeln('    Chassis.initialize(${_capitalize(chassis.name)}ChassisConstants.CHASSIS_CONFIG);');
+    if (chassis.makeChassis || robotContainer.useAnotherChassis) {
+      sb.writeln('    Chassis.initialize(${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${_capitalize(chassis.name)}ChassisConstants'}.CHASSIS_CONFIG);');
       sb.writeln('    driveCommand = new DriveCommand(Chassis.getInstance(), controller);');
     }
     for (var mech in mechanisms) {
@@ -3242,7 +3259,7 @@ class JavaCodeGenerator {
     sb.writeln('  }');
     sb.writeln('');
     sb.writeln('  private void setDefaultCommands() {');
-    if (chassis.makeChassis) {
+    if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('    Chassis.getInstance().setDefaultCommand(driveCommand);');
     }
     for (var mech in mechanisms) {
