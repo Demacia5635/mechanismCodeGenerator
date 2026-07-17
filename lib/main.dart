@@ -69,7 +69,6 @@ class MotorModel {
   double maxVelocity = 0.0; 
   double maxAcceleration = 0.0;
   double maxJerk = 0.0;
-  double maxPositionError = 0.5; 
   bool useMotionMagic = false;
   bool todoMotionMagic = false;
   
@@ -194,11 +193,13 @@ class MechanismModel {
     return names.isEmpty ? ['No Motors Available'] : names;
   }
 
-  List<String> getSensorNames() {
+  List<String> getLimitSwitchNames() {
     List<String> names = [];
     for (int i = 0; i < sensors.length; i++) {
-      String n = sensors[i].name.trim();
-      names.add(n.isEmpty ? 'Unnamed Sensor ${i + 1}' : n);
+      if (sensors[i].sensorType == 'Limit Switch') {
+        String n = sensors[i].name.trim();
+        names.add(n.isEmpty ? 'Unnamed Sensor ${i + 1}' : n);
+      }
     }
     return names.isEmpty ? ['No Sensors Available'] : names;
   }
@@ -257,7 +258,12 @@ class ChassisModel {
   double frOffset = 0;
   double blOffset = 0;
   double brOffset = 0;
-   bool todoOffsets = true;
+  bool todoOffsets = true;
+}
+
+class RobotContainerModel {
+  bool makeRobotContainer = false;
+  String controllerType = 'PS5';
 }
 
 // ==========================================
@@ -297,6 +303,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<MechanismModel> _mechanisms = [];
   final ChassisModel _chassis = ChassisModel();
+  final RobotContainerModel _robotContainer = RobotContainerModel();
 
   void _addNewMechanismDialog() {
     String tempName = '';
@@ -351,13 +358,18 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (_chassis.makeChassis) {
-      String className = _chassis.name.replaceAll(' ', '');
+      String className = _chassis.name;
       if (className.isNotEmpty) {
         className = className[0].toUpperCase() + className.substring(1);
       } else {
         className = "Robot";
       }
       allFiles['chassis/${className}ChassisConstants.java'] = JavaCodeGenerator.generateChassisConstants(_chassis);
+    }
+
+    if (_robotContainer.makeRobotContainer) {
+      String className = "RobotContainer";
+      allFiles['$className.java'] = JavaCodeGenerator.generateRobotContainer(_robotContainer, _chassis, _mechanisms);
     }
 
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
@@ -602,7 +614,7 @@ class _HomePageState extends State<HomePage> {
                               const Divider(height: 32),
 
                               _buildGroupHeader(
-                                title: 'Motion Magic Parameters',
+                                title: 'Steer Motion Magic Parameters',
                                 isTodo: _chassis.todoMotionMagic,
                                 onTodoChanged: (val) => setState(() => _chassis.todoMotionMagic = val),
                               ),
@@ -758,11 +770,58 @@ class _HomePageState extends State<HomePage> {
                     child: ListTile(
                       title: Text(mech.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                       subtitle: Text('${mech.motors.length} Motors | ${mech.sensors.length} Sensors'),
-                      trailing: const Icon(Icons.arrow_forward_ios),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () {
+                          setState(() {
+                            _mechanisms.remove(mech);
+                          });
+                        },
+                      ),
                       onTap: () => _openMechanismEditor(mech),
                     ),
                   );
                 },
+              ),
+              Card(
+                margin: const EdgeInsets.all(16),
+                color: Colors.grey[900],
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: const Text('Generate Built-in RobotContainer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      value: _robotContainer.makeRobotContainer,
+                      onChanged: (val) => setState(() => _robotContainer.makeRobotContainer = val),
+                    ),
+                    if (_robotContainer.makeRobotContainer)
+                    ExpansionTile(
+                      title: const Text('RobotContainer Configuration'),
+                      initiallyExpanded: true,
+                      maintainState: true,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: DropdownButtonFormField<String>(
+                                      value: _robotContainer.controllerType,
+                                      decoration: const InputDecoration(labelText: 'Controller Type', border: OutlineInputBorder()),
+                                      items: ['PS5', 'Xbox'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                                      onChanged: (val) => setState(() => _robotContainer.controllerType = val!),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 400)
@@ -907,7 +966,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
   @override
   Widget build(BuildContext context) {
     List<String> motorNames = widget.mechanism.getMotorNames();
-    List<String> sensorNames = widget.mechanism.getSensorNames();
+    List<String> limitSwitchNames = widget.mechanism.getLimitSwitchNames();
 
     return Scaffold(
       appBar: AppBar(
@@ -1237,9 +1296,9 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                       if (autoCalibration.atResetPosMethod == "when sensor true")
                           Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: sensorNames.contains(autoCalibration.sensorName) ? autoCalibration.sensorName : sensorNames.first,
+                            value: limitSwitchNames.contains(autoCalibration.sensorName) ? autoCalibration.sensorName : limitSwitchNames.first,
                             decoration: const InputDecoration(labelText: 'Sensor', border: OutlineInputBorder(), isDense: true),
-                            items: sensorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+                            items: limitSwitchNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
                             onChanged: (val) => setState(() => autoCalibration.sensorName = val!),
                           ),
                         ),
@@ -1264,7 +1323,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                   ),
                 )),
                 TextButton.icon(
-                  onPressed: () => setState(() => widget.mechanism.autoCalibrations.add(AutoCalibrationConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
+                  onPressed: () => setState(() => widget.mechanism.autoCalibrations.add(AutoCalibrationConfig()..motorName = motorNames.first..sensorName = limitSwitchNames.first)), 
                   icon: const Icon(Icons.add), label: const Text('Add Auto Calibration')
                 ),
               ],
@@ -1311,9 +1370,9 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                           if (cmd.atResetPosMethod == "when sensor true")
                               Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: sensorNames.contains(cmd.sensorName) ? cmd.sensorName : sensorNames.first,
+                                value: limitSwitchNames.contains(cmd.sensorName) ? cmd.sensorName : limitSwitchNames.first,
                                 decoration: const InputDecoration(labelText: 'Sensor', border: OutlineInputBorder(), isDense: true),
-                                items: sensorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+                                items: limitSwitchNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
                                 onChanged: (val) => setState(() => cmd.sensorName = val!),
                               ),
                             ),
@@ -1394,7 +1453,7 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                   ),
                 )),
                 TextButton.icon(
-                  onPressed: () => setState(() => widget.mechanism.calibrationCommands.add(CalibrationCmdConfig()..motorName = motorNames.first..sensorName = sensorNames.first)), 
+                  onPressed: () => setState(() => widget.mechanism.calibrationCommands.add(CalibrationCmdConfig()..motorName = motorNames.first..sensorName = limitSwitchNames.first)), 
                   icon: const Icon(Icons.add), label: const Text('Add Calibration Command')
                 ),
               ],
@@ -1406,52 +1465,54 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             color: Colors.grey[900],
             child: Column(
               children: [
-                SwitchListTile(
-                  title: const Text('Generate Default Command', style: TextStyle(fontWeight: FontWeight.bold)),
-                  value: widget.mechanism.useDefaultCommand,
-                  onChanged: (val) => setState(() => widget.mechanism.useDefaultCommand = val),
-                ),
-                if (widget.mechanism.useDefaultCommand)
-                  ExpansionTile(
-                    title: const Text('Default Command Configuration'),
-                    initiallyExpanded: true,
-                    maintainState: true,
-                    children: [
-                      if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
-                        ...motorNames.map((mName) {
-                          widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                            child: Row(
-                              children: [
-                                Expanded(child: Text(mName)),
-                                Expanded(
-                                  flex: 2,
-                                  child: DropdownButtonFormField<String>(
-                                    value: widget.mechanism.defaultControlModes[mName],
-                                    decoration: const InputDecoration(
-                                      labelText: 'Control Mode', 
-                                      border: OutlineInputBorder(), 
-                                      isDense: true
-                                    ),
-                                    items: [
-                                      'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
-                                      'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
-                                    ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
-                                    onChanged: (val) => setState(() => widget.mechanism.defaultControlModes[mName] = val!),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text('Add motors to assign control modes.', style: TextStyle(color: Colors.grey)),
-                        )
-                    ],
+                if (widget.mechanism.useStates) ... {
+                  SwitchListTile(
+                    title: const Text('Generate Default Command', style: TextStyle(fontWeight: FontWeight.bold)),
+                    value: widget.mechanism.useDefaultCommand,
+                    onChanged: (val) => setState(() => widget.mechanism.useDefaultCommand = val),
                   ),
+                  if (widget.mechanism.useDefaultCommand)
+                    ExpansionTile(
+                      title: const Text('Default Command Configuration'),
+                      initiallyExpanded: true,
+                      maintainState: true,
+                      children: [
+                        if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
+                          ...motorNames.map((mName) {
+                            widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Text(mName)),
+                                  Expanded(
+                                    flex: 2,
+                                    child: DropdownButtonFormField<String>(
+                                      value: widget.mechanism.defaultControlModes[mName],
+                                      decoration: const InputDecoration(
+                                        labelText: 'Control Mode', 
+                                        border: OutlineInputBorder(), 
+                                        isDense: true
+                                      ),
+                                      items: [
+                                        'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
+                                        'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
+                                      ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
+                                      onChanged: (val) => setState(() => widget.mechanism.defaultControlModes[mName] = val!),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text('Add motors to assign control modes.', style: TextStyle(color: Colors.grey)),
+                          )
+                      ],
+                    ),
+                }
               ],
             ),
           ),
@@ -1527,7 +1588,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                     labelText: 'Motor Type',
                     border: OutlineInputBorder(),
                   ),
-                  items: ['TalonFX', 'TalonSRX', 'SparkMax', 'SparkFlex', 'Other']
+                  items: ['TalonFX', 'TalonSRX', 'SparkMax', 'SparkFlex']
                       .map((type) => DropdownMenuItem(value: type, child: Text(type)))
                       .toList(),
                   onChanged: (val) => setState(() => widget.motor.motorType = val!),
@@ -1927,17 +1988,17 @@ class SensorEditorPage extends StatefulWidget {
 class _SensorEditorPageState extends State<SensorEditorPage> {
   
   final List<String> _sensorTypes = [
-    'Cancoder', 'Pigeon', 'DigitalEncoder', 'AnalogEncoder', 
-    'LimitSwitch', 'ColorSensor', 'OpticalSensor', 'LidarSensor', 'UltraSonicSensor'
+    'Cancoder', 'Pigeon', 'Digital Encoder', 'Analog Encoder', 
+    'Limit Switch', 'Color Sensor', 'Optical Sensor', 'Ultra Sonic Sensor'
   ];
 
   @override
   Widget build(BuildContext context) {
     bool isCanSensor = widget.sensor.sensorType == 'Cancoder' || widget.sensor.sensorType == 'Pigeon';
-    bool isEncoder = widget.sensor.sensorType == 'Cancoder' || widget.sensor.sensorType == 'DigitalEncoder' || widget.sensor.sensorType == 'AnalogEncoder';
+    bool isEncoder = widget.sensor.sensorType == 'Cancoder' || widget.sensor.sensorType == 'Digital Encoder' || widget.sensor.sensorType == 'Analog Encoder';
     bool isGyro = widget.sensor.sensorType == 'Pigeon';
-    bool hasOffset = isEncoder || isGyro || widget.sensor.sensorType == 'UltraSonicSensor'; 
-    bool isSimpleDigitalAnalog = widget.sensor.sensorType == 'ColorSensor' || widget.sensor.sensorType == 'OpticalSensor' || widget.sensor.sensorType == 'LidarSensor';
+    bool hasOffset = isEncoder || isGyro || widget.sensor.sensorType == 'Ultra Sonic Sensor'; 
+    bool isSimpleDigitalAnalog = widget.sensor.sensorType == 'Color Sensor' || widget.sensor.sensorType == 'Optical Sensor';
 
     return Scaffold(
       appBar: AppBar(
@@ -2018,7 +2079,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
 
           const Divider(height: 32),
 
-          if (!isSimpleDigitalAnalog && widget.sensor.sensorType != 'UltraSonicSensor')
+          if (!isSimpleDigitalAnalog && widget.sensor.sensorType != 'Ultra Sonic Sensor')
             SwitchListTile(
               secondary: _buildTodoFlag(
                 isTodo: widget.sensor.todoInverted,
@@ -2065,7 +2126,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
             ),
           ],
 
-          if (widget.sensor.sensorType == 'AnalogEncoder' || widget.sensor.sensorType == 'DigitalEncoder') ...[
+          if (widget.sensor.sensorType == 'Analog Encoder' || widget.sensor.sensorType == 'Digital Encoder') ...[
             AutoCheckField(
               label: 'Full Range (Radians)',
               initialValue: widget.sensor.fullRange.toString(), defaultValue: '6.28318',
@@ -2098,7 +2159,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
             ),
           ],
 
-          if (widget.sensor.sensorType == 'DigitalEncoder') ...[
+          if (widget.sensor.sensorType == 'Digital Encoder') ...[
             AutoCheckField(
               label: 'Frequency (Hz)',
               initialValue: widget.sensor.frequency.toString(), defaultValue: '1000.0',
@@ -2108,7 +2169,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
             ),
           ],
 
-          if (widget.sensor.sensorType == 'UltraSonicSensor') ...[
+          if (widget.sensor.sensorType == 'Ultra Sonic Sensor') ...[
             const Divider(height: 16),
             Row(
               children: [
@@ -2368,7 +2429,12 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
 class JavaCodeGenerator {
   static String _capitalize(String s) {
     if (s.isEmpty) return '';
-    String cap = '${s[0].toUpperCase()}${s.substring(1)}';
+    List<String> words = s.split(RegExp(r'[\s_\-]+'));
+    String cap = words.map((word) {
+      if (word.isEmpty) return '';
+      return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+    }).join('');
+    
     if (RegExp(r'^[0-9]').hasMatch(cap)) {
       cap = 'M$cap'; 
     }
@@ -2376,8 +2442,12 @@ class JavaCodeGenerator {
   }
   
   static String _constantize(String s) {
-    String replaced = s.replaceAll(' ', '_');
-    replaced = replaced.replaceAllMapped(RegExp(r'(?<=[a-z])([A-Z])'), (Match m) => '_${m.group(1)}');
+    if (s.isEmpty) return '';
+    String replaced = s.replaceAll(RegExp(r'[\s\-]+'), '_');
+    replaced = replaced.replaceAllMapped(
+      RegExp(r'(?<=[a-z])([A-Z])(?=[a-zA-Z])'), 
+      (Match m) => '_${m.group(1)}'
+    );
     return replaced.toUpperCase();
   }
   
@@ -2388,20 +2458,32 @@ class JavaCodeGenerator {
     
     if (mech.name.trim().isEmpty) return files;
 
-    String mechNameLower = mech.name.replaceAll(' ', '').toLowerCase();
-    String mechNameCap = _capitalize(mech.name.replaceAll(' ', ''));
+    String mechNameLower = _capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1);
+    String mechNameCap = _capitalize(mech.name);
     
+    for (int i = 0; i < mech.motors.length; i++) {
+      if (mech.motors[i].name.isEmpty) {
+        mech.motors[i].name = 'Unnamed Motor ${i + 1}';
+      }
+    }
+
+    for (int i = 0; i < mech.sensors.length; i++) {
+      if (mech.sensors[i].name.isEmpty) {
+        mech.sensors[i].name = 'Unnamed Sensor ${i + 1}';
+      }
+    }
+
     files['$mechNameLower/${mechNameCap}Constants.java'] = _generateConstants(mech, mechNameCap, mechNameLower);
     
     files['$mechNameLower/subsystems/$mechNameCap.java'] = _generateSubsystem(mech, mechNameCap, mechNameLower);
     
-    if (mech.useDefaultCommand) {
+    if (mech.useStates && mech.useDefaultCommand) {
       files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
     }
 
     for (var calibration in mech.calibrationCommands) {
       if (calibration.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(calibration.motorName.replaceAll(' ', ''));
+      String motorNameCap = _capitalize(calibration.motorName);
       String cmdName = '${motorNameCap}CalibrationCommand';
       files['$mechNameLower/commands/$cmdName.java'] = _generateCalibrationCommand(mech, calibration, mechNameCap, mechNameLower, cmdName);
     }
@@ -2437,7 +2519,7 @@ class JavaCodeGenerator {
 
     Set<String> sensorTypes = mech.sensors.map((s) => s.sensorType).toSet();
     for (String st in sensorTypes) {
-      sb.writeln('import frc.demacia.utils.sensors.${st}Config;');
+      sb.writeln('import frc.demacia.utils.sensors.${st.replaceAll(' ', '')}Config;');
     }
 
     sb.writeln('');
@@ -2447,16 +2529,14 @@ class JavaCodeGenerator {
 
     // Motors Constants
     for (var motor in mech.motors) {
-      if (motor.name.isEmpty) continue;
-      String mBaseName = motor.name.replaceAll(' ', '');
-      String mConst = _constantize(mBaseName);
-      String mClass = '${_capitalize(mBaseName)}Constants';
+      String mConst = _constantize(motor.name);
+      String mClass = '${_capitalize(motor.name)}Constants';
       
       sb.writeln('    public static final class $mClass {');
       sb.writeln('        public static final String ${mConst}_NAME = "${motor.name}";');
       sb.writeln('        public static final int ${mConst}_ID = ${motor.id.isEmpty ? '0' : motor.id};${_todo(motor.todoId)}');
       
-      bool isCanMotor = motor.motorType == 'TalonFX' || motor.motorType == 'TalonSRX';
+      bool isCanMotor = motor.motorType == 'TalonFX';
       if (isCanMotor) {
         sb.writeln('        public static final Canbus ${mConst}_CANBUS = Canbus.${motor.canBus};${_todo(motor.todoCanBus)}');
       }
@@ -2515,7 +2595,7 @@ class JavaCodeGenerator {
       sb.write('            .withInvert(${mConst}_INVERT)');
 
       if (motor.useMaxVolt) {
-        sb.writeln('\n            .withVolts(${mConst}_MAX_VOLTAGE)');
+        sb.write('\n            .withVolts(${mConst}_MAX_VOLTAGE)');
       }
       if (motor.useMaxCurrent) {
         sb.write('\n            .withCurrent(${mConst}_MAX_CURRENT)');
@@ -2541,13 +2621,15 @@ class JavaCodeGenerator {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
       }
       if (motor.useStallDetection) {
-         sb.write('\n            .withStallDetection(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_SECONDS_THRESHOLD)');
+         sb.write('\n            //does not exist yet\n            ');
       }
       sb.writeln(';');
+      sb.writeln('');
 
       // Limits Constants
       var limit = mech.limits.where((l) => l.motorName == motor.name).firstOrNull;
       if (limit != null) {
+        print(limit.motorName);
         sb.writeln('        public static final double ${mConst}_MIN_LIMIT = ${limit.minLimit};${_todo(limit.todoMinLimit)}');
         sb.writeln('        public static final double ${mConst}_MAX_LIMIT = ${limit.maxLimit};${_todo(limit.todoMaxLimit)}');
       }
@@ -2573,8 +2655,7 @@ class JavaCodeGenerator {
 
     // Sensors Constants
     for (var sensor in mech.sensors) {
-      if (sensor.name.isEmpty) continue;
-      String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
+      String sBaseName = '${sensor.name} ${sensor.sensorType}';
       String sConst = _constantize(sBaseName);
       String sClass = '${_capitalize(sBaseName)}Constants';
       
@@ -2582,7 +2663,7 @@ class JavaCodeGenerator {
       sb.writeln('        public static final String ${sConst}_NAME = "$sBaseName";');
       
       bool isCanSensor = sensor.sensorType == 'Cancoder' || sensor.sensorType == 'Pigeon';
-      bool isColorSensor = sensor.sensorType == 'ColorSensor';
+      bool isColorSensor = sensor.sensorType == 'Color Sensor';
       
       if (!isColorSensor) {
         sb.writeln('        public static final int ${sConst}_ID = ${sensor.idOrPort.isEmpty ? '0' : sensor.idOrPort};${_todo(sensor.todoId)}');
@@ -2592,28 +2673,28 @@ class JavaCodeGenerator {
         sb.writeln('        public static final Canbus ${sConst}_CANBUS = Canbus.${sensor.canBus};${_todo(sensor.todoCanBus)}');
       }
       
-      if (sensor.sensorType == 'UltraSonicSensor') {
+      if (sensor.sensorType == 'Ultra Sonic Sensor') {
         sb.writeln('        public static final int ${sConst}_PING_CHANNEL = ${sensor.pingChannel.isEmpty ? '0' : sensor.pingChannel};${_todo(sensor.todoPingChannel)}');
       }
       
-      bool hasInvert = sensor.sensorType != 'ColorSensor' && sensor.sensorType != 'OpticalSensor' && sensor.sensorType != 'LidarSensor' && sensor.sensorType != 'UltraSonicSensor';
+      bool hasInvert = sensor.sensorType != 'Color Sensor' && sensor.sensorType != 'Optical Sensor'&& sensor.sensorType != 'Ultra Sonic Sensor';
       if (hasInvert) {
         sb.writeln('        public static final boolean ${sConst}_INVERT = ${sensor.inverted};${_todo(sensor.todoInverted)}');
       }
       
-      bool hasOffset = sensor.sensorType == 'Cancoder' || sensor.sensorType == 'AnalogEncoder' || sensor.sensorType == 'DigitalEncoder';
+      bool hasOffset = sensor.sensorType == 'Cancoder' || sensor.sensorType == 'Analog Encoder' || sensor.sensorType == 'Digital Encoder';
       if (hasOffset && sensor.useOffset) {
         sb.writeln('        public static final double ${sConst}_OFFSET = ${sensor.offset};${_todo(sensor.todoOffset)}');
       }
       
-      bool hasRange = sensor.sensorType == 'AnalogEncoder' || sensor.sensorType == 'DigitalEncoder';
+      bool hasRange = sensor.sensorType == 'Analog Encoder' || sensor.sensorType == 'Digital Encoder';
       if (hasRange) {
         if (sensor.useFullRange) sb.writeln('        public static final double ${sConst}_FULL_RANGE = ${sensor.fullRange};${_todo(sensor.todoFullRange)}');
         if (sensor.useMinRange) sb.writeln('        public static final double ${sConst}_MIN_RANGE = ${sensor.minRange};${_todo(sensor.todoMinRange)}');
         if (sensor.useMaxRange) sb.writeln('        public static final double ${sConst}_MAX_RANGE = ${sensor.maxRange};${_todo(sensor.todoMaxRange)}');
       }
       
-      if (sensor.sensorType == 'DigitalEncoder' && sensor.useFrequency) {
+      if (sensor.sensorType == 'Digital Encoder' && sensor.useFrequency) {
         sb.writeln('        public static final double ${sConst}_FREQUENCY = ${sensor.frequency};${_todo(sensor.todoFrequency)}');
       }
       
@@ -2626,7 +2707,7 @@ class JavaCodeGenerator {
         if (sensor.useScalars) {
           sb.writeln('        public static final double ${sConst}_X_SCALAR = ${sensor.xScalar};${_todo(sensor.todoScalars)}');
           sb.writeln('        public static final double ${sConst}_Y_SCALAR = ${sensor.yScalar};${_todo(sensor.todoScalars)}');
-          sb.writeln('        public static final double ${sConst}_Z_SCALAR = ${sensor.zScalar};$_todo(sensor.todoScalars)}');
+          sb.writeln('        public static final double ${sConst}_Z_SCALAR = ${sensor.zScalar};${_todo(sensor.todoScalars)}');
         }
         sb.writeln('        public static final boolean ${sConst}_COMPASS = ${sensor.compass};${_todo(sensor.todoCompass)}');
         sb.writeln('        public static final boolean ${sConst}_TEMP_COMP = ${sensor.tempCompensation};${_todo(sensor.todoTempComp)}');
@@ -2637,17 +2718,17 @@ class JavaCodeGenerator {
       String configArgs;
       if (isCanSensor) {
         configArgs = '${sConst}_ID, ${sConst}_CANBUS, ${sConst}_NAME';
-      } else if (sensor.sensorType == 'ColorSensor') {
+      } else if (sensor.sensorType == 'Color Sensor') {
         configArgs = '${sConst}_NAME';
-      } else if (sensor.sensorType == 'OpticalSensor' || sensor.sensorType == 'LidarSensor') {
+      } else if (sensor.sensorType == 'Optical Sensor') {
         configArgs = '${sConst}_NAME, ${sConst}_ID';
-      } else if (sensor.sensorType == 'UltraSonicSensor') {
+      } else if (sensor.sensorType == 'Ultra Sonic Sensor') {
         configArgs = '${sConst}_ID, ${sConst}_PING_CHANNEL, ${sConst}_NAME';
       } else {
         configArgs = '${sConst}_ID, ${sConst}_NAME';
       }
       
-      sb.write('        public static final ${sensor.sensorType}Config ${sConst}_CONFIG = new ${sensor.sensorType}Config($configArgs)');
+      sb.write('        public static final ${sensor.sensorType.replaceAll(' ', '')}Config ${sConst}_CONFIG = new ${sensor.sensorType.replaceAll(' ', '')}Config($configArgs)');
       
       if (hasInvert) {
         sb.write('\n            .withInvert(${sConst}_INVERT)');
@@ -2659,7 +2740,7 @@ class JavaCodeGenerator {
       
       if (hasRange) {
         if (sensor.useFullRange) {
-          if (sensor.sensorType == 'AnalogEncoder') sb.write('\n            .withFullRange(${sConst}_FULL_RANGE)');
+          if (sensor.sensorType == 'Analog Encoder') sb.write('\n            .withFullRange(${sConst}_FULL_RANGE)');
           if (sensor.sensorType == 'DigitalEncoder') sb.write('\n            .withScalar(${sConst}_FULL_RANGE)');
         }
         if (sensor.useMinRange && sensor.useMaxRange) {
@@ -2671,7 +2752,7 @@ class JavaCodeGenerator {
         }
       }
       
-      if (sensor.sensorType == 'DigitalEncoder' && sensor.useFrequency) {
+      if (sensor.sensorType == 'Digital Encoder' && sensor.useFrequency) {
         sb.write('\n            .withFrequency(${sConst}_FREQUENCY)');
       }
       
@@ -2700,20 +2781,23 @@ class JavaCodeGenerator {
     if (mech.useStates) {
       sb.writeln('    public static enum ${mechNameCap}States implements MechanismState {');
       
+      if (mech.states.isEmpty) {
+        sb.writeln('        ;');
+      }
       for (int i = 0; i < mech.states.length; i++) {
         var state = mech.states[i];
-        String stateName = _constantize(state.name.isEmpty ? 'STATE_$i' : state.name);
+        String stateName = _constantize(state.name.isEmpty ? 'STATE_${i + 1}' : state.name);
         
         if (mech.statesType == 'fixed states') {
           List<String> values = [];
           for (var motor in mech.motors) {
             values.add(state.motorValues[motor.name]?.toString() ?? '0.0');
           }
-          sb.write('        $stateName(${values.join(', ')})${_todo(state.todoMotorValues)}');
+          sb.write('        $stateName(${values.join(', ')})');
         } else {
           sb.write('        $stateName');
         }
-        sb.writeln(i == mech.states.length - 1 ? ';' : ',');
+        sb.writeln(i == mech.states.length - 1 ? ';${_todo(state.todoMotorValues)}' : ',${_todo(state.todoMotorValues)}');
       }
 
       sb.writeln('');
@@ -2756,7 +2840,7 @@ class JavaCodeGenerator {
     
     Set<String> sensorTypes = mech.sensors.map((s) => s.sensorType).toSet();
     for (String st in sensorTypes) {
-      sb.writeln('import frc.demacia.utils.sensors.$st;');
+      sb.writeln('import frc.demacia.utils.sensors.${st.replaceAll(' ', '')};');
     }
     
     if (mech.powerCommands.isNotEmpty) {
@@ -2769,16 +2853,16 @@ class JavaCodeGenerator {
       sb.writeln('import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;');
       for (var cal in mech.calibrationCommands) {
         if (cal.motorName == 'No Motors Available') continue;
-        sb.writeln('import frc.robot.$mechNameLower.commands.${cal.motorName[0].toUpperCase() + cal.motorName.substring(1)}CalibrationCommand;');
+        sb.writeln('import frc.robot.$mechNameLower.commands.${_capitalize(cal.motorName)}CalibrationCommand;');
       }
     }
     
     for (var motor in mech.motors) {
-      String mClass = '${_capitalize(motor.name.replaceAll(' ', ''))}Constants';
+      String mClass = '${_capitalize(motor.name)}Constants';
       sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.$mClass.*;');
     }
     for (var sensor in mech.sensors) {
-      String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
+      String sBaseName = '${sensor.name} ${sensor.sensorType}';
       String sClass = '${_capitalize(sBaseName)}Constants';
       sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.$sClass.*;');
     }
@@ -2795,8 +2879,7 @@ class JavaCodeGenerator {
     
     sb.writeln('        new MotorInterface[] {');
     for (var motor in mech.motors) {
-      if (motor.name.isEmpty) continue;
-      String mConst = _constantize(motor.name.replaceAll(' ', ''));
+      String mConst = _constantize(motor.name);
       sb.writeln('            new ${motor.motorType}Motor(${mConst}_MOTOR_CONFIG),');
     }
     sb.writeln('        }, ');
@@ -2804,9 +2887,9 @@ class JavaCodeGenerator {
     sb.writeln('        new SensorInterface[] {');
     if (mech.sensors.isNotEmpty) {
       for (var sensor in mech.sensors) {
-        String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
+        String sBaseName = '${sensor.name} ${sensor.sensorType}';
         String sConst = _constantize(sBaseName);
-        sb.writeln('            new ${sensor.sensorType}(${sConst}_CONFIG),');
+        sb.writeln('            new ${sensor.sensorType.replaceAll(' ', '')}(${sConst}_CONFIG),');
       }
     }
     sb.writeln('        }' + (mech.useStates ? ', ' : ');'));
@@ -2818,14 +2901,14 @@ class JavaCodeGenerator {
     
     for (var limit in mech.limits) {
       if (limit.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(limit.motorName.replaceAll(' ', ''));
+      String mConst = _constantize(limit.motorName);
       sb.writeln('        addLimit(${mConst}_NAME, ${mConst}_MIN_LIMIT, ${mConst}_MAX_LIMIT);');
     }
 
     for (var pc in mech.powerCommands) {
       if (pc.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(pc.motorName.replaceAll(' ', ''));
-      String supplierLogic = '0.0 //TODO';
+      String mConst = _constantize(pc.motorName);
+      String supplierLogic = '0.0';
       switch (pc.supplier) {
         case 'Controller rightX': supplierLogic = 'RobotContainer.controller.getRightX()'; break;
         case 'Controller rightY': supplierLogic = 'RobotContainer.controller.getRightY()'; break;
@@ -2837,8 +2920,8 @@ class JavaCodeGenerator {
 
     for (var autoCal in mech.autoCalibrations) {
       if (autoCal.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(autoCal.motorName.replaceAll(' ', ''));
-      String motorNameCap = _capitalize(autoCal.motorName.replaceAll(' ', ''));
+      String mConst = _constantize(autoCal.motorName);
+      String motorNameCap = _capitalize(autoCal.motorName);
 
       bool reuseCmdMethod = false;
       var cmdCal = mech.calibrationCommands.where((c) => c.motorName == autoCal.motorName).firstOrNull;
@@ -2853,9 +2936,9 @@ class JavaCodeGenerator {
 
     for (var cal in mech.calibrationCommands) {
       if (cal.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(cal.motorName.replaceAll(' ', ''));
-      String mechNameConst = _constantize(mech.name.replaceAll(' ', ''));
-      sb.writeln('        SmartDashboard.putData(${mechNameConst}_NAME + "/" + ${mConst}_NAME + " Calibration Command", new ${cal.motorName[0].toUpperCase() + cal.motorName.substring(1)}CalibrationCommand(this));');
+      String mConst = _constantize(cal.motorName);
+      String mechNameConst = _constantize(mech.name);
+      sb.writeln('        SmartDashboard.putData(${mechNameConst}_NAME + "/" + ${mConst}_NAME + " Calibration Command", new ${_capitalize(cal.motorName)}CalibrationCommand(this));');
     }
 
     sb.writeln('    }');
@@ -2891,9 +2974,9 @@ class JavaCodeGenerator {
       if (methodType == 'when sensor true') {
         var sensor = mech.sensors.where((s) => s.name == sensorName).firstOrNull;
         if (sensor != null) {
-          String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
+          String sBaseName = '${sensor.name} ${sensor.sensorType}';
           String sConst = _constantize(sBaseName);
-          sb.writeln('        return ((${sensor.sensorType}) getSensor(${sConst}_NAME)).get();');
+          sb.writeln('        return ((${sensor.sensorType.replaceAll(' ', '')}) getSensor(${sConst}_NAME)).get();');
         } else {
           sb.writeln('        throw new UnsupportedOperationException("Sensor not found");');
         }
@@ -2907,13 +2990,13 @@ class JavaCodeGenerator {
 
     for (var cmdCal in mech.calibrationCommands) {
       if (cmdCal.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(cmdCal.motorName.replaceAll(' ', ''));
+      String motorNameCap = _capitalize(cmdCal.motorName);
       writeConditionMethod('at${motorNameCap}ResetPos', cmdCal.atResetPosMethod, cmdCal.sensorName);
     }
 
     for (var autoCal in mech.autoCalibrations) {
       if (autoCal.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(autoCal.motorName.replaceAll(' ', ''));
+      String motorNameCap = _capitalize(autoCal.motorName);
       
       var cmdCal = mech.calibrationCommands.where((cmd) => cmd.motorName == autoCal.motorName).firstOrNull;
       bool isDifferent = true;
@@ -2960,9 +3043,9 @@ class JavaCodeGenerator {
 
   static String _generateCalibrationCommand(MechanismModel mech, CalibrationCmdConfig calib, String mechNameCap, String mechNameLower, String cmdName) {
     StringBuffer sb = StringBuffer();
-    String motorNameCap = _capitalize(calib.motorName.replaceAll(' ', ''));
+    String motorNameCap = _capitalize(calib.motorName);
     String mClass = '${motorNameCap}Constants';
-    String mConst = _constantize(calib.motorName.replaceAll(' ', ''));
+    String mConst = _constantize(calib.motorName);
     
     sb.writeln('package frc.robot.$mechNameLower.commands;');
     sb.writeln('');
@@ -2992,7 +3075,7 @@ class JavaCodeGenerator {
   static String generateChassisConstants(ChassisModel chassis) {
     StringBuffer sb = StringBuffer();
     
-    String className = '${_capitalize(chassis.name.replaceAll(' ', ''))} ChassisConstants';
+    String className = '${_capitalize(chassis.name)}ChassisConstants';
     String constName = '${chassis.name} Chassis';
 
     sb.writeln('package frc.robot.chassis;');
@@ -3009,47 +3092,47 @@ class JavaCodeGenerator {
     sb.writeln('');
     sb.writeln('  public static final String NAME = "$constName";');
     sb.writeln('');
-    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0}; $_todo(chassis.todoPigeonId)');
-    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus}; $_todo(chassis.todoCanBus)');
-    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus}; $_todo(chassis.todoPigeonCanBus)');
-    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio}; $_todo(chassis.todoSteerGearRatio)');
-    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio}; $_todo(chassis.todoDriveGearRatio)');
-    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter}; $_todo(chassis.todoWheelDiameter)');
+    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0}; ${_todo(chassis.todoPigeonId)}');
+    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus}; ${_todo(chassis.todoCanBus)}');
+    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus}; ${_todo(chassis.todoPigeonCanBus)}');
+    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio}; ${_todo(chassis.todoSteerGearRatio)}');
+    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio}; ${_todo(chassis.todoDriveGearRatio)}');
+    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter}; ${_todo(chassis.todoWheelDiameter)}');
     sb.writeln('');
-    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP}; $_todo(chassis.todoSteerPIDFF)');
-    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI}; $_todo(chassis.todoSteerPIDFF)');
-    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD}; $_todo(chassis.todoSteerPIDFF)');
-    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS}; $_todo(chassis.todoSteerPIDFF)');
-    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV}; $_todo(chassis.todoSteerPIDFF)');
-    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA}; ${_todo(chassis.todoSteerPIDFF)}');
     sb.writeln('');
-    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP}; $_todo(chassis.todoDrivePIDFF)');
-    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI}; $_todo(chassis.todoDrivePIDFF)');
-    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD}; $_todo(chassis.todoDrivePIDFF)');
-    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS}; $_todo(chassis.todoDrivePIDFF)');
-    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV}; $_todo(chassis.todoDrivePIDFF)');
-    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA}; ${_todo(chassis.todoDrivePIDFF)}');
     sb.writeln('');
-    sb.writeln('  public static final double MOTION_MAGIC_VEL = ${chassis.motionMagicVel}; $_todo(chassis.todoMotionMagic)');
-    sb.writeln('  public static final double MOTION_MAGIC_ACCEL = ${chassis.motionMagicAccel}; $_todo(chassis.todoMotionMagic)');
-    sb.writeln('  public static final double MOTION_MAGIC_JERK = ${chassis.motionMagicJerk}; $_todo(chassis.todoMotionMagic)');
+    sb.writeln('  public static final double STEER_MOTION_MAGIC_VEL = ${chassis.motionMagicVel}; ${_todo(chassis.todoMotionMagic)}');
+    sb.writeln('  public static final double STEER_MOTION_MAGIC_ACCEL = ${chassis.motionMagicAccel}; ${_todo(chassis.todoMotionMagic)}');
+    sb.writeln('  public static final double STEER_MOTION_MAGIC_JERK = ${chassis.motionMagicJerk}; ${_todo(chassis.todoMotionMagic)}');
     sb.writeln('');
-    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; $_todo(chassis.todoMaxDriveVelocity)');
-    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; $_todo(chassis.todoRampTimeSteer)');
+    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; ${_todo(chassis.todoMaxDriveVelocity)}');
+    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; ${_todo(chassis.todoRampTimeSteer)}');
     sb.writeln('');
     sb.writeln('  public static final Translation2d[] MODULE_LOCATIONS = {');
-    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT $_todo(chassis.todoLocations)');
-    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}), //FRONT RIGHT $_todo(chassis.todoLocations)');
-    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}), //BACK LEFT $_todo(chassis.todoLocations)');
-    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY}), //BACK RIGHT $_todo(chassis.todoLocations)');
+    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT ${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}), //FRONT RIGHT ${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}), //BACK LEFT ${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY}), //BACK RIGHT ${_todo(chassis.todoLocations)}');
     sb.writeln('  };');
     sb.writeln('');
     sb.writeln('  public static final SwerveModuleConfig[] modules = swerveModules(');
     sb.writeln('      new double[] {');
-    sb.writeln('        ${chassis.flOffset}, //FRONT LEFT $_todo(chassis.todoOffsets)');
-    sb.writeln('        ${chassis.frOffset}, //FRONT RIGHT $_todo(chassis.todoOffsets)');
-    sb.writeln('        ${chassis.blOffset}, //BACK LEFT $_todo(chassis.todoOffsets)');
-    sb.writeln('        ${chassis.brOffset} //BACK RIGHT $_todo(chassis.todoOffsets)');
+    sb.writeln('        ${chassis.flOffset}, //FRONT LEFT ${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.frOffset}, //FRONT RIGHT ${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.blOffset}, //BACK LEFT ${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.brOffset} //BACK RIGHT ${_todo(chassis.todoOffsets)}');
     sb.writeln('      });');
     sb.writeln('');
     sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(PIGEON_ID, PIGEON_CAN_BUS, NAME + " pigeon");');
@@ -3074,7 +3157,7 @@ class JavaCodeGenerator {
     sb.writeln('          name,');
     sb.writeln('          new TalonFXConfig(i * 3 + 2, CAN_BUS, name + " Steer")');
     sb.writeln('              .withPID(STEER_KP, STEER_KI, STEER_KD, STEER_KS, STEER_KV, STEER_KA, 0)');
-    sb.writeln('              .withMotionParam(MOTION_MAGIC_VEL, MOTION_MAGIC_ACCEL, MOTION_MAGIC_JERK)');
+    sb.writeln('              .withMotionParam(STEER_MOTION_MAGIC_VEL, STEER_MOTION_MAGIC_ACCEL, STEER_MOTION_MAGIC_JERK)');
     sb.writeln('              .withBrake(true)');
     sb.writeln('              .withInvert(true)');
     sb.writeln('              .withRadiansMotor(STEER_GEAR_RATIO)');
@@ -3090,6 +3173,103 @@ class JavaCodeGenerator {
     sb.writeln('    return ans;');
     sb.writeln('  }');
     sb.writeln('}');
+
+    return sb.toString();
+  }
+
+  static String generateRobotContainer(RobotContainerModel robotContainer, ChassisModel chassis, List<MechanismModel> mechanisms) {
+    StringBuffer sb = StringBuffer();
+
+    sb.writeln('package frc.robot;');
+    sb.writeln('import edu.wpi.first.util.sendable.Sendable;');
+    sb.writeln('import edu.wpi.first.util.sendable.SendableBuilder;');
+    sb.writeln('import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;');
+    sb.writeln('import frc.demacia.utils.controller.CommandController;');
+    sb.writeln('import frc.demacia.utils.controller.CommandController.ControllerType;');
+    sb.writeln('import edu.wpi.first.wpilibj2.command.Command;');
+    if (chassis.makeChassis) {
+      sb.writeln('import frc.demacia.utils.chassis.Chassis;');
+      sb.writeln('import frc.demacia.utils.chassis.DriveCommand;');
+      sb.writeln('import frc.robot.chassis.${_capitalize(chassis.name)}ChassisConstants;');
+    }
+    for (var mech in mechanisms) {
+      sb.writeln('import frc.robot.${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.subsystems.${_capitalize(mech.name)};');
+      if (mech.useStates && mech.useDefaultCommand) {
+        sb.writeln('import frc.robot.${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.commands.${_capitalize(mech.name)}Command;');
+      }
+    }
+    sb.writeln('');
+    sb.writeln('/**');
+    sb.writeln(' * This class is where the bulk of the robot should be declared. Since');
+    sb.writeln(' * Command-based is a');
+    sb.writeln(' * "declarative" paradigm, very little robot logic should actually be handled in');
+    sb.writeln(' * the {@link Robot}');
+    sb.writeln(' * periodic methods (other than the scheduler calls). Instead, the structure of');
+    sb.writeln('* the robot (including');
+    sb.writeln(' * subsystems, commands, and trigger mappings) should be declared here.');
+    sb.writeln(' */');
+    sb.writeln('public class RobotContainer implements Sendable {');
+    sb.writeln('');
+    sb.writeln('  public static CommandController controller = new CommandController(0, ControllerType.k${robotContainer.controllerType});');
+    sb.writeln('');
+    for (var mech in mechanisms) {
+      sb.writeln('  private ${_capitalize(mech.name)} ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)};');
+    }
+    if (chassis.makeChassis) {
+      sb.writeln('  public static DriveCommand driveCommand;');
+    }
+    sb.writeln('');
+    sb.writeln('  /**');
+    sb.writeln('   * The container for the robot. Contains subsystems, OI devices, and commands.');
+    sb.writeln('   */');
+    sb.writeln('  public RobotContainer() {');
+    sb.writeln('    SmartDashboard.putData("RC", this);');
+    if (chassis.makeChassis) {
+      sb.writeln('    Chassis.initialize(${_capitalize(chassis.name)}ChassisConstants.CHASSIS_CONFIG);');
+      sb.writeln('    driveCommand = new DriveCommand(Chassis.getInstance(), controller);');
+    }
+    for (var mech in mechanisms) {
+      sb.writeln('    ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)} = ${_capitalize(mech.name)}.getInstance();');
+    }
+    sb.writeln('');
+    sb.writeln('    configureBindings();');
+    sb.writeln('    setDefaultCommands();');
+    sb.writeln('    setController();');
+    sb.writeln('  }');
+    sb.writeln('');
+    sb.writeln('  private void configureBindings() {');
+    sb.writeln('');
+    sb.writeln('  }');
+    sb.writeln('');
+    sb.writeln('  private void setDefaultCommands() {');
+    if (chassis.makeChassis) {
+      sb.writeln('    Chassis.getInstance().setDefaultCommand(driveCommand);');
+    }
+    for (var mech in mechanisms) {
+      if (mech.useStates && mech.useDefaultCommand) {
+        sb.writeln('    ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.setDefaultCommand(new ${_capitalize(mech.name)}Command());');
+      }
+    }
+    sb.writeln('  }');
+    sb.writeln('');
+    sb.writeln('  private void setController() {');
+    sb.writeln('');
+    sb.writeln('  }');
+    sb.writeln('');
+    sb.writeln('  @Override');
+    sb.writeln('  public void initSendable(SendableBuilder builder) {');
+    sb.writeln('');
+    sb.writeln('  }');
+    sb.writeln('');
+    sb.writeln('  /**');
+    sb.writeln('   * Use this to pass the autonomous command to the main {@link Robot} class.');
+    sb.writeln('   *');
+    sb.writeln('   * @return the command to run in autonomous');
+    sb.writeln('   */');
+    sb.writeln('  public Command getAutonomousCommand() {');
+    sb.writeln('    return null;');
+    sb.writeln('  }');
+    sb.write('}');
 
     return sb.toString();
   }
