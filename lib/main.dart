@@ -118,7 +118,7 @@ class SensorModel {
   
   bool compass = false; bool todoCompass = false;
   bool tempCompensation = false; bool todoTempComp = false;
-  bool noMotionCalibration = false; bool todoNoMotion = false;
+  bool noMotionCalibration = false; bool todoNoMotionCal = false;
   
   String pingChannel = ''; bool todoPingChannel = false;
 }
@@ -163,7 +163,7 @@ class StateConfig {
   String name = '';
   
   Map<String, double> motorValues = {};
-  Map<String, bool> todoMotorValues = {};
+  bool todoMotorValues = false;
 }
 
 class MechanismModel {
@@ -210,8 +210,8 @@ class ChassisModel {
   String name = 'robot';
   
   String pigeonId = ''; bool todoPigeonId = false;
-  String canBus = 'CANivore'; bool todoCanBus = false;
-  String pigeonCanBus = 'CANivore'; bool todoPigeonCanBus = false;
+  String canBus = 'CANIvore'; bool todoCanBus = false;
+  String pigeonCanBus = 'CANIvore'; bool todoPigeonCanBus = false;
   
   double steerGearRatio = 287.0 / 11.0; bool todoSteerGearRatio = false;
   double driveGearRatio = 6.03; bool todoDriveGearRatio = false;
@@ -242,20 +242,22 @@ class ChassisModel {
   double rampTimeSteer = 0.25; bool todoRampTimeSteer = false;
 
   // Locations (X, Y)
-  double flX = 0; bool todoFlX = false;
-  double flY = 0; bool todoFlY = false;
-  double frX = 0; bool todoFrX = false;
-  double frY = 0; bool todoFrY = false;
-  double blX = 0; bool todoBlX = false;
-  double blY = 0; bool todoBlY = false;
-  double brX = 0; bool todoBrX = false;
-  double brY = 0; bool todoBrY = false;
+  double flX = 0;
+  double flY = 0;
+  double frX = 0;
+  double frY = 0;
+  double blX = 0;
+  double blY = 0;
+  double brX = 0;
+  double brY = 0;
+  bool todoLocations = true;
 
   // Offsets
-  double flOffset = 0; bool todoFlOffset = true;
-  double frOffset = 0; bool todoFrOffset = true;
-  double blOffset = 0; bool todoBlOffset = true;
-  double brOffset = 0; bool todoBrOffset = true;
+  double flOffset = 0;
+  double frOffset = 0;
+  double blOffset = 0;
+  double brOffset = 0;
+   bool todoOffsets = true;
 }
 
 // ==========================================
@@ -456,7 +458,7 @@ class _HomePageState extends State<HomePage> {
                                     child: DropdownButtonFormField<String>(
                                       value: _chassis.canBus,
                                       decoration: const InputDecoration(labelText: 'CAN Bus', border: OutlineInputBorder()),
-                                      items: ['CANivore', 'Rio'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                                      items: ['CANIvore', 'Rio'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
                                       onChanged: (val) => setState(() => _chassis.canBus = val!),
                                     ),
                                   ),
@@ -469,7 +471,7 @@ class _HomePageState extends State<HomePage> {
                                     child: DropdownButtonFormField<String>(
                                       value: _chassis.pigeonCanBus,
                                       decoration: const InputDecoration(labelText: 'Pigeon CAN Bus', border: OutlineInputBorder()),
-                                      items: ['CANivore', 'Rio'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                                      items: ['CANIvore', 'Rio'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
                                       onChanged: (val) => setState(() => _chassis.pigeonCanBus = val!),
                                     ),
                                   ),
@@ -668,13 +670,13 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  _buildTodoFlag(isTodo: _chassis.todoFlX, onChanged: (val) => setState(() => _chassis.todoFlX = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.flX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoFlY, onChanged: (val) => setState(() => _chassis.todoFlY = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.flY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoFlOffset, onChanged: (val) => setState(() => _chassis.todoFlOffset = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.flOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
@@ -685,13 +687,13 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  _buildTodoFlag(isTodo: _chassis.todoFrX, onChanged: (val) => setState(() => _chassis.todoFrX = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.frX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoFrY, onChanged: (val) => setState(() => _chassis.todoFrY = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.frY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoFrOffset, onChanged: (val) => setState(() => _chassis.todoFrOffset = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.frOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
@@ -702,13 +704,13 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  _buildTodoFlag(isTodo: _chassis.todoBlX, onChanged: (val) => setState(() => _chassis.todoBlX = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.blX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoBlY, onChanged: (val) => setState(() => _chassis.todoBlY = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.blY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoBlOffset, onChanged: (val) => setState(() => _chassis.todoBlOffset = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.blOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
@@ -719,13 +721,13 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  _buildTodoFlag(isTodo: _chassis.todoBrX, onChanged: (val) => setState(() => _chassis.todoBrX = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.brX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brX = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoBrY, onChanged: (val) => setState(() => _chassis.todoBrY = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.brY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brY = double.tryParse(val) ?? 0.0)),
                                   const SizedBox(width: 8),
-                                  _buildTodoFlag(isTodo: _chassis.todoBrOffset, onChanged: (val) => setState(() => _chassis.todoBrOffset = val)),
+                                  _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
                                   Expanded(child: TextFormField(initialValue: _chassis.brOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brOffset = double.tryParse(val) ?? 0.0)),
                                 ],
                               ),
@@ -1048,15 +1050,14 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                                 const SizedBox(height: 8),
                                 ...motorNames.map((mName) {
                                   stateCfg.motorValues.putIfAbsent(mName, () => 0.0);
-                                  stateCfg.todoMotorValues.putIfAbsent(mName, () => false);
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 8.0, left: 16.0),
                                     child: Row(
                                       children: [
                                         Expanded(flex: 2, child: Text(mName)),
                                         _buildTodoFlag(
-                                          isTodo: stateCfg.todoMotorValues[mName]!,
-                                          onChanged: (val) => setState(() => stateCfg.todoMotorValues[mName] = val),
+                                          isTodo: stateCfg.todoMotorValues,
+                                          onChanged: (val) => setState(() => stateCfg.todoMotorValues = val),
                                         ),
                                         Expanded(
                                           flex: 3,
@@ -2005,7 +2006,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                       child: DropdownButtonFormField<String>(
                         value: widget.sensor.canBus,
                         decoration: const InputDecoration(labelText: 'CAN Bus', border: OutlineInputBorder()),
-                        items: ['Rio', 'CANivore'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                        items: ['Rio', 'CANIvore'].map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
                         onChanged: (val) => setState(() => widget.sensor.canBus = val!),
                       ),
                     ),
@@ -2045,7 +2046,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
               contentPadding: EdgeInsets.zero,
             ),
             SwitchListTile(
-              secondary: _buildTodoFlag(isTodo: widget.sensor.todoNoMotion, onChanged: (val) => setState(() => widget.sensor.todoNoMotion = val)),
+              secondary: _buildTodoFlag(isTodo: widget.sensor.todoNoMotionCal, onChanged: (val) => setState(() => widget.sensor.todoNoMotionCal = val)),
               title: const Text('No Motion Calibration'),
               value: widget.sensor.noMotionCalibration,
               onChanged: (val) => setState(() => widget.sensor.noMotionCalibration = val),
@@ -2379,6 +2380,8 @@ class JavaCodeGenerator {
     replaced = replaced.replaceAllMapped(RegExp(r'(?<=[a-z])([A-Z])'), (Match m) => '_${m.group(1)}');
     return replaced.toUpperCase();
   }
+  
+  static String _todo(bool isTodo) => isTodo ? ' // TODO' : '';
 
   static Map<String, String> generateMechanismFiles(MechanismModel mech) {
     Map<String, String> files = {};
@@ -2451,57 +2454,57 @@ class JavaCodeGenerator {
       
       sb.writeln('    public static final class $mClass {');
       sb.writeln('        public static final String ${mConst}_NAME = "${motor.name}";');
-      sb.writeln('        public static final int ${mConst}_ID = ${motor.id.isEmpty ? '0' : motor.id};');
+      sb.writeln('        public static final int ${mConst}_ID = ${motor.id.isEmpty ? '0' : motor.id};${_todo(motor.todoId)}');
       
       bool isCanMotor = motor.motorType == 'TalonFX' || motor.motorType == 'TalonSRX';
       if (isCanMotor) {
-        sb.writeln('        public static final Canbus ${mConst}_CANBUS = Canbus.${motor.canBus};');
+        sb.writeln('        public static final Canbus ${mConst}_CANBUS = Canbus.${motor.canBus};${_todo(motor.todoCanBus)}');
       }
       
-      sb.writeln('        public static final boolean ${mConst}_BRAKE = ${motor.brakeMode};');
-      sb.writeln('        public static final boolean ${mConst}_INVERT = ${motor.inverted};');
+      sb.writeln('        public static final boolean ${mConst}_BRAKE = ${motor.brakeMode};${_todo(motor.todoBrakeMode)}');
+      sb.writeln('        public static final boolean ${mConst}_INVERT = ${motor.inverted};${_todo(motor.todoInverted)}');
       
       if (motor.useMaxVolt) {
-        sb.writeln('        public static final double ${mConst}_MAX_VOLTAGE = ${motor.maxVolt};');
+        sb.writeln('        public static final double ${mConst}_MAX_VOLTAGE = ${motor.maxVolt};${_todo(motor.todoMaxVolt)}');
       }
       if (motor.useMaxCurrent) {
-        sb.writeln('        public static final double ${mConst}_MAX_CURRENT = ${motor.maxCurrent};');
+        sb.writeln('        public static final double ${mConst}_MAX_CURRENT = ${motor.maxCurrent};${_todo(motor.todoMaxCurrent)}');
       }
       if (motor.useRampUpTime) {
-        sb.writeln('        public static final double ${mConst}_RAMP_UP_TIME = ${motor.rampUpTime};');
+        sb.writeln('        public static final double ${mConst}_RAMP_UP_TIME = ${motor.rampUpTime};${_todo(motor.todoRampUpTime)}');
       }
 
       if (motor.useRadiansMotor) {
-        sb.writeln('        public static final double ${mConst}_GEAR_RATIO = ${motor.gearRatio};');
+        sb.writeln('        public static final double ${mConst}_GEAR_RATIO = ${motor.gearRatio};${_todo(motor.todoGearRatio)}');
       }
       if (motor.useMeterMotor) {
-        sb.writeln('        public static final double ${mConst}_GEAR_RATIO = ${motor.gearRatio};');
-        sb.writeln('        public static final double ${mConst}_DIAMETER = ${motor.diameter};');
+        sb.writeln('        public static final double ${mConst}_GEAR_RATIO = ${motor.gearRatio};${_todo(motor.todoGearRatio)}');
+        sb.writeln('        public static final double ${mConst}_DIAMETER = ${motor.diameter};${_todo(motor.todoDiameter)}');
       }
 
       // PID & Advanced Control Constants
       if (motor.usePIDFF) {
-        sb.writeln('        public static final double ${mConst}_KP = ${motor.kP};');
-        sb.writeln('        public static final double ${mConst}_KI = ${motor.kI};');
-        sb.writeln('        public static final double ${mConst}_KD = ${motor.kD};');
-        sb.writeln('        public static final double ${mConst}_KS = ${motor.kS};');
-        sb.writeln('        public static final double ${mConst}_KV = ${motor.kV};');
-        sb.writeln('        public static final double ${mConst}_KA = ${motor.kA};');
-        sb.writeln('        public static final double ${mConst}_KG = ${motor.kG};');
+        sb.writeln('        public static final double ${mConst}_KP = ${motor.kP};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KI = ${motor.kI};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KD = ${motor.kD};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KS = ${motor.kS};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KV = ${motor.kV};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KA = ${motor.kA};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KG = ${motor.kG};${_todo(motor.todoPIDFF)}');
       }
       if (motor.useAdvancedFF) {
-        sb.writeln('        public static final double ${mConst}_KV2 = ${motor.kV2};');
-        sb.writeln('        public static final double ${mConst}_KSIN = ${motor.kSin};');
+        sb.writeln('        public static final double ${mConst}_KV2 = ${motor.kV2};${_todo(motor.todoAdvancedFF)}');
+        sb.writeln('        public static final double ${mConst}_KSIN = ${motor.kSin};${_todo(motor.todoAdvancedFF)}');
       }
       if (motor.useMotionMagic) {
-        sb.writeln('        public static final double ${mConst}_MAX_VELOCITY = ${motor.maxVelocity};');
-        sb.writeln('        public static final double ${mConst}_MAX_ACCELERATION = ${motor.maxAcceleration};');
-        sb.writeln('        public static final double ${mConst}_MAX_JERK = ${motor.maxJerk};');
+        sb.writeln('        public static final double ${mConst}_MAX_VELOCITY = ${motor.maxVelocity};${_todo(motor.todoMotionMagic)}');
+        sb.writeln('        public static final double ${mConst}_MAX_ACCELERATION = ${motor.maxAcceleration};${_todo(motor.todoMotionMagic)}');
+        sb.writeln('        public static final double ${mConst}_MAX_JERK = ${motor.maxJerk};${_todo(motor.todoMotionMagic)}');
       }
       if (motor.useStallDetection) {
-        sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};');
-        sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};');
-        sb.writeln('        public static final double ${mConst}_SECONDS_THRESHOLD = ${motor.secondsThreshold};');
+        sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};${_todo(motor.todoStallDetection)}');
+        sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};${_todo(motor.todoStallDetection)}');
+        sb.writeln('        public static final double ${mConst}_SECONDS_THRESHOLD = ${motor.secondsThreshold};${_todo(motor.todoStallDetection)}');
       }
 
       sb.writeln('');
@@ -2512,60 +2515,56 @@ class JavaCodeGenerator {
       sb.write('            .withInvert(${mConst}_INVERT)');
 
       if (motor.useMaxVolt) {
-        sb.writeln('');
-        sb.writeln('            .withVolts(${mConst}_MAX_VOLTAGE)');
+        sb.writeln('\n            .withVolts(${mConst}_MAX_VOLTAGE)');
       }
       if (motor.useMaxCurrent) {
-        sb.writeln('            .withCurrent(${mConst}_MAX_CURRENT)');
+        sb.write('\n            .withCurrent(${mConst}_MAX_CURRENT)');
       }
       if (motor.useRampUpTime) {
-        sb.writeln('            .withRampTime(${mConst}_RAMP_UP_TIME)');
+        sb.write('\n            .withRampTime(${mConst}_RAMP_UP_TIME)');
       }
 
       if (motor.useRadiansMotor) {
-        sb.writeln('            .withRadiansMotor(${mConst}_GEAR_RATIO)');
+        sb.write('\n            .withRadiansMotor(${mConst}_GEAR_RATIO)');
       }
       if (motor.useMeterMotor) {
-        sb.writeln('            .withMeterMotor(${mConst}_GEAR_RATIO, ${mConst}_DIAMETER)');
+        sb.write('\n            .withMeterMotor(${mConst}_GEAR_RATIO, ${mConst}_DIAMETER)');
       }
       
       if (motor.usePIDFF) {
-         sb.write('            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG)');
-         }
+        sb.write('\n            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG)');
+      }
       if (motor.useAdvancedFF) {
-         sb.writeln('');
-         sb.write('            .withFeedForward(${mConst}_KV2, ${mConst}_KSIN)');
+         sb.write('\n            .withFeedForward(${mConst}_KV2, ${mConst}_KSIN)');
       }
       if (motor.useMotionMagic) {
-         sb.writeln('');
-         sb.write('            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
+         sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
       }
       if (motor.useStallDetection) {
-         sb.writeln('');
-         sb.write('            .withStallDetection(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_SECONDS_THRESHOLD)');
+         sb.write('\n            .withStallDetection(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_SECONDS_THRESHOLD)');
       }
       sb.writeln(';');
 
       // Limits Constants
       var limit = mech.limits.where((l) => l.motorName == motor.name).firstOrNull;
       if (limit != null) {
-        sb.writeln('        public static final double ${mConst}_MIN_LIMIT = ${limit.minLimit};');
-        sb.writeln('        public static final double ${mConst}_MAX_LIMIT = ${limit.maxLimit};');
+        sb.writeln('        public static final double ${mConst}_MIN_LIMIT = ${limit.minLimit};${_todo(limit.todoMinLimit)}');
+        sb.writeln('        public static final double ${mConst}_MAX_LIMIT = ${limit.maxLimit};${_todo(limit.todoMaxLimit)}');
       }
 
       var cmdCal = mech.calibrationCommands.where((c) => c.motorName == motor.name).firstOrNull;
       var autoCal = mech.autoCalibrations.where((c) => c.motorName == motor.name).firstOrNull;
       
       if (cmdCal != null) {
-        sb.writeln('        public static final double ${mConst}_CALIBRATION_POWER = ${cmdCal.power};');
-        sb.writeln('        public static final double ${mConst}_CMD_CALIBRATION_RESET_POS = ${cmdCal.resetPos};');
+        sb.writeln('        public static final double ${mConst}_CALIBRATION_POWER = ${cmdCal.power};${_todo(cmdCal.todoPower)}');
+        sb.writeln('        public static final double ${mConst}_CMD_CALIBRATION_RESET_POS = ${cmdCal.resetPos};${_todo(cmdCal.todoResetPos)}');
         if (cmdCal.useStartDelay) {
-            sb.writeln('        public static final double ${mConst}_START_POWER = ${cmdCal.startPower};');
-            sb.writeln('        public static final double ${mConst}_START_DELAY_SEC = ${cmdCal.startDelaySec};');
+            sb.writeln('        public static final double ${mConst}_START_POWER = ${cmdCal.startPower};${_todo(cmdCal.todoStartPower)}');
+            sb.writeln('        public static final double ${mConst}_START_DELAY_SEC = ${cmdCal.startDelaySec};${_todo(cmdCal.todoStartDelay)}');
         }
       }
       if (autoCal != null) {
-        sb.writeln('        public static final double ${mConst}_AUTO_CALIBRATION_RESET_POS = ${autoCal.autoResetPos};');
+        sb.writeln('        public static final double ${mConst}_AUTO_CALIBRATION_RESET_POS = ${autoCal.autoResetPos};${_todo(autoCal.todoResetPos)}');
       }
       
       sb.writeln('    }');
@@ -2586,52 +2585,52 @@ class JavaCodeGenerator {
       bool isColorSensor = sensor.sensorType == 'ColorSensor';
       
       if (!isColorSensor) {
-        sb.writeln('        public static final int ${sConst}_ID = ${sensor.idOrPort.isEmpty ? '0' : sensor.idOrPort};');
+        sb.writeln('        public static final int ${sConst}_ID = ${sensor.idOrPort.isEmpty ? '0' : sensor.idOrPort};${_todo(sensor.todoId)}');
       }
       
       if (isCanSensor) {
-        sb.writeln('        public static final Canbus ${sConst}_CANBUS = Canbus.${sensor.canBus};');
+        sb.writeln('        public static final Canbus ${sConst}_CANBUS = Canbus.${sensor.canBus};${_todo(sensor.todoCanBus)}');
       }
       
       if (sensor.sensorType == 'UltraSonicSensor') {
-        sb.writeln('        public static final int ${sConst}_PING_CHANNEL = ${sensor.pingChannel.isEmpty ? '0' : sensor.pingChannel};');
+        sb.writeln('        public static final int ${sConst}_PING_CHANNEL = ${sensor.pingChannel.isEmpty ? '0' : sensor.pingChannel};${_todo(sensor.todoPingChannel)}');
       }
       
       bool hasInvert = sensor.sensorType != 'ColorSensor' && sensor.sensorType != 'OpticalSensor' && sensor.sensorType != 'LidarSensor' && sensor.sensorType != 'UltraSonicSensor';
       if (hasInvert) {
-        sb.writeln('        public static final boolean ${sConst}_INVERT = ${sensor.inverted};');
+        sb.writeln('        public static final boolean ${sConst}_INVERT = ${sensor.inverted};${_todo(sensor.todoInverted)}');
       }
       
       bool hasOffset = sensor.sensorType == 'Cancoder' || sensor.sensorType == 'AnalogEncoder' || sensor.sensorType == 'DigitalEncoder';
       if (hasOffset && sensor.useOffset) {
-        sb.writeln('        public static final double ${sConst}_OFFSET = ${sensor.offset};');
+        sb.writeln('        public static final double ${sConst}_OFFSET = ${sensor.offset};${_todo(sensor.todoOffset)}');
       }
       
       bool hasRange = sensor.sensorType == 'AnalogEncoder' || sensor.sensorType == 'DigitalEncoder';
       if (hasRange) {
-        if (sensor.useFullRange) sb.writeln('        public static final double ${sConst}_FULL_RANGE = ${sensor.fullRange};');
-        if (sensor.useMinRange) sb.writeln('        public static final double ${sConst}_MIN_RANGE = ${sensor.minRange};');
-        if (sensor.useMaxRange) sb.writeln('        public static final double ${sConst}_MAX_RANGE = ${sensor.maxRange};');
+        if (sensor.useFullRange) sb.writeln('        public static final double ${sConst}_FULL_RANGE = ${sensor.fullRange};${_todo(sensor.todoFullRange)}');
+        if (sensor.useMinRange) sb.writeln('        public static final double ${sConst}_MIN_RANGE = ${sensor.minRange};${_todo(sensor.todoMinRange)}');
+        if (sensor.useMaxRange) sb.writeln('        public static final double ${sConst}_MAX_RANGE = ${sensor.maxRange};${_todo(sensor.todoMaxRange)}');
       }
       
       if (sensor.sensorType == 'DigitalEncoder' && sensor.useFrequency) {
-        sb.writeln('        public static final double ${sConst}_FREQUENCY = ${sensor.frequency};');
+        sb.writeln('        public static final double ${sConst}_FREQUENCY = ${sensor.frequency};${_todo(sensor.todoFrequency)}');
       }
       
       if (sensor.sensorType == 'Pigeon') {
         if (sensor.useOffsets) {
-          sb.writeln('        public static final double ${sConst}_PITCH_OFFSET = ${sensor.pitchOffset};');
-          sb.writeln('        public static final double ${sConst}_ROLL_OFFSET = ${sensor.rollOffset};');
-          sb.writeln('        public static final double ${sConst}_YAW_OFFSET = ${sensor.yawOffset};');
+          sb.writeln('        public static final double ${sConst}_PITCH_OFFSET = ${sensor.pitchOffset};${_todo(sensor.todoOffsets)}');
+          sb.writeln('        public static final double ${sConst}_ROLL_OFFSET = ${sensor.rollOffset};${_todo(sensor.todoOffsets)}');
+          sb.writeln('        public static final double ${sConst}_YAW_OFFSET = ${sensor.yawOffset};${_todo(sensor.todoOffsets)}');
         }
         if (sensor.useScalars) {
-          sb.writeln('        public static final double ${sConst}_X_SCALAR = ${sensor.xScalar};');
-          sb.writeln('        public static final double ${sConst}_Y_SCALAR = ${sensor.yScalar};');
-          sb.writeln('        public static final double ${sConst}_Z_SCALAR = ${sensor.zScalar};');
+          sb.writeln('        public static final double ${sConst}_X_SCALAR = ${sensor.xScalar};${_todo(sensor.todoScalars)}');
+          sb.writeln('        public static final double ${sConst}_Y_SCALAR = ${sensor.yScalar};${_todo(sensor.todoScalars)}');
+          sb.writeln('        public static final double ${sConst}_Z_SCALAR = ${sensor.zScalar};$_todo(sensor.todoScalars)}');
         }
-        sb.writeln('        public static final boolean ${sConst}_COMPASS = ${sensor.compass};');
-        sb.writeln('        public static final boolean ${sConst}_TEMP_COMP = ${sensor.tempCompensation};');
-        sb.writeln('        public static final boolean ${sConst}_NO_MOTION_CALIBRATION = ${sensor.noMotionCalibration};');
+        sb.writeln('        public static final boolean ${sConst}_COMPASS = ${sensor.compass};${_todo(sensor.todoCompass)}');
+        sb.writeln('        public static final boolean ${sConst}_TEMP_COMP = ${sensor.tempCompensation};${_todo(sensor.todoTempComp)}');
+        sb.writeln('        public static final boolean ${sConst}_NO_MOTION_CALIBRATION = ${sensor.noMotionCalibration};${_todo(sensor.todoNoMotionCal)}');
       }
       
       // Construct configArgs correctly based on constructor definitions
@@ -2710,7 +2709,7 @@ class JavaCodeGenerator {
           for (var motor in mech.motors) {
             values.add(state.motorValues[motor.name]?.toString() ?? '0.0');
           }
-          sb.write('        $stateName(${values.join(', ')})');
+          sb.write('        $stateName(${values.join(', ')})${_todo(state.todoMotorValues)}');
         } else {
           sb.write('        $stateName');
         }
@@ -2791,7 +2790,7 @@ class JavaCodeGenerator {
     sb.writeln('public class $mechNameCap extends $parentClass {');
     sb.writeln('    private static $mechNameCap instance;');
     sb.writeln('');
-    sb.writeln('    public $mechNameCap() {');
+    sb.writeln('    private $mechNameCap() {');
     sb.writeln('        super($mechConstName, ');
     
     sb.writeln('        new MotorInterface[] {');
@@ -2826,7 +2825,7 @@ class JavaCodeGenerator {
     for (var pc in mech.powerCommands) {
       if (pc.motorName == 'No Motors Available') continue;
       String mConst = _constantize(pc.motorName.replaceAll(' ', ''));
-      String supplierLogic = '0.0';
+      String supplierLogic = '0.0 //TODO';
       switch (pc.supplier) {
         case 'Controller rightX': supplierLogic = 'RobotContainer.controller.getRightX()'; break;
         case 'Controller rightY': supplierLogic = 'RobotContainer.controller.getRightY()'; break;
@@ -2894,7 +2893,7 @@ class JavaCodeGenerator {
         if (sensor != null) {
           String sBaseName = '${sensor.name.replaceAll(' ', '')}${sensor.sensorType}';
           String sConst = _constantize(sBaseName);
-          sb.writeln('        return ((${sensor.sensorType}) getSensor(${sConst}_NAME)).getBoolean();');
+          sb.writeln('        return ((${sensor.sensorType}) getSensor(${sConst}_NAME)).get();');
         } else {
           sb.writeln('        throw new UnsupportedOperationException("Sensor not found");');
         }
@@ -2979,7 +2978,7 @@ class JavaCodeGenerator {
     sb.writeln('            ${mConst}_NAME, ');
     sb.writeln('            ${mConst}_CALIBRATION_POWER,');
     sb.writeln('            mechanism::at${motorNameCap}ResetPos, ');
-    sb.writeln('            ${mConst}_CMD_CALIBRATION_RESET_POS' + (calib.useStartDelay ? ',' : ''));
+    sb.writeln('            ${mConst}_CMD_CALIBRATION_RESET_POS ${calib.useStartDelay ? ',' : ''}');
     if (calib.useStartDelay) {
         sb.writeln('            ${mConst}_START_POWER,');
         sb.writeln('            ${mConst}_START_DELAY_SEC');
@@ -2993,8 +2992,8 @@ class JavaCodeGenerator {
   static String generateChassisConstants(ChassisModel chassis) {
     StringBuffer sb = StringBuffer();
     
-    String className = _capitalize(chassis.name.replaceAll(' ', '')) + 'ChassisConstants';
-    String constName = chassis.name + " Chassis";
+    String className = '${_capitalize(chassis.name.replaceAll(' ', ''))} ChassisConstants';
+    String constName = '${chassis.name} Chassis';
 
     sb.writeln('package frc.robot.chassis;');
     sb.writeln('');
@@ -3010,40 +3009,55 @@ class JavaCodeGenerator {
     sb.writeln('');
     sb.writeln('  public static final String NAME = "$constName";');
     sb.writeln('');
-    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0};');
-    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus};');
-    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus};');
-    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio};');
-    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio};');
-    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter};');
+    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0}; $_todo(chassis.todoPigeonId)');
+    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus}; $_todo(chassis.todoCanBus)');
+    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus}; $_todo(chassis.todoPigeonCanBus)');
+    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio}; $_todo(chassis.todoSteerGearRatio)');
+    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio}; $_todo(chassis.todoDriveGearRatio)');
+    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter}; $_todo(chassis.todoWheelDiameter)');
     sb.writeln('');
-    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP};');
-    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI};');
-    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD};');
-    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS};');
-    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV};');
-    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA};');
+    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV}; $_todo(chassis.todoSteerPIDFF)');
+    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA}; $_todo(chassis.todoSteerPIDFF)');
     sb.writeln('');
-    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP};');
-    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI};');
-    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD};');
-    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS};');
-    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV};');
-    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA};');
+    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV}; $_todo(chassis.todoDrivePIDFF)');
+    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA}; $_todo(chassis.todoDrivePIDFF)');
     sb.writeln('');
-    sb.writeln('  public static final double MOTION_MAGIC_VEL = ${chassis.motionMagicVel};');
-    sb.writeln('  public static final double MOTION_MAGIC_ACCEL = ${chassis.motionMagicAccel};');
-    sb.writeln('  public static final double MOTION_MAGIC_JERK = ${chassis.motionMagicJerk};');
+    sb.writeln('  public static final double MOTION_MAGIC_VEL = ${chassis.motionMagicVel}; $_todo(chassis.todoMotionMagic)');
+    sb.writeln('  public static final double MOTION_MAGIC_ACCEL = ${chassis.motionMagicAccel}; $_todo(chassis.todoMotionMagic)');
+    sb.writeln('  public static final double MOTION_MAGIC_JERK = ${chassis.motionMagicJerk}; $_todo(chassis.todoMotionMagic)');
     sb.writeln('');
-    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity};');
-    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer};');
+    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; $_todo(chassis.todoMaxDriveVelocity)');
+    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; $_todo(chassis.todoRampTimeSteer)');
     sb.writeln('');
     sb.writeln('  public static final Translation2d[] MODULE_LOCATIONS = {');
-    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}),');
-    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}),');
-    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}),');
-    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY})');
+    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT $_todo(chassis.todoLocations)');
+    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}), //FRONT RIGHT $_todo(chassis.todoLocations)');
+    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}), //BACK LEFT $_todo(chassis.todoLocations)');
+    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY}), //BACK RIGHT $_todo(chassis.todoLocations)');
     sb.writeln('  };');
+    sb.writeln('');
+    sb.writeln('  public static final SwerveModuleConfig[] modules = swerveModules(');
+    sb.writeln('      new double[] {');
+    sb.writeln('        ${chassis.flOffset}, //FRONT LEFT $_todo(chassis.todoOffsets)');
+    sb.writeln('        ${chassis.frOffset}, //FRONT RIGHT $_todo(chassis.todoOffsets)');
+    sb.writeln('        ${chassis.blOffset}, //BACK LEFT $_todo(chassis.todoOffsets)');
+    sb.writeln('        ${chassis.brOffset} //BACK RIGHT $_todo(chassis.todoOffsets)');
+    sb.writeln('      });');
+    sb.writeln('');
+    sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(PIGEON_ID, PIGEON_CAN_BUS, NAME + " pigeon");');
+    sb.writeln('');
+    sb.writeln('  public static final ChassisConfig CHASSIS_CONFIG = new ChassisConfig(');
+    sb.writeln('      NAME,');
+    sb.writeln('      modules,');
+    sb.writeln('      PIGEON_CONFIG);');
     sb.writeln('');
     sb.writeln('  public static final SwerveModuleConfig[] swerveModules(double[] offsets) {');
     sb.writeln('    SwerveModuleConfig[] ans = new SwerveModuleConfig[4];');
@@ -3075,21 +3089,6 @@ class JavaCodeGenerator {
     sb.writeln('    }');
     sb.writeln('    return ans;');
     sb.writeln('  }');
-    sb.writeln('');
-    sb.writeln('  public static final SwerveModuleConfig[] modules = swerveModules(');
-    sb.writeln('      new double[] {');
-    sb.writeln('        ${chassis.flOffset},');
-    sb.writeln('        ${chassis.frOffset},');
-    sb.writeln('        ${chassis.blOffset},');
-    sb.writeln('        ${chassis.brOffset}');
-    sb.writeln('      });');
-    sb.writeln('');
-    sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(PIGEON_ID, PIGEON_CAN_BUS, NAME + " pigeon");');
-    sb.writeln('');
-    sb.writeln('  public static final ChassisConfig CHASSIS_CONFIG = new ChassisConfig(');
-    sb.writeln('      NAME,');
-    sb.writeln('      modules,');
-    sb.writeln('      PIGEON_CONFIG);');
     sb.writeln('}');
 
     return sb.toString();
