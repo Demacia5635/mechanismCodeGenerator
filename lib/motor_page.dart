@@ -295,30 +295,15 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                 onChanged: (v) => widget.motor.kG = v,
                 markAsUsed: () => setState(() => widget.motor.usePIDFF = true),
               ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-          _buildGroupHeader(
-            title: 'Advanced Feed Forward',
-            isUsed: widget.motor.useAdvancedFF,
-            isTodo: widget.motor.todoAdvancedFF,
-            onUseChanged: (val) => setState(() => widget.motor.useAdvancedFF = val),
-            onTodoChanged: (val) => setState(() => widget.motor.todoAdvancedFF = val),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 16, runSpacing: 16,
-            children: [
+              _buildGroupedTextField(
+                label: 'kCos', initialValue: widget.motor.kCos, defaultValue: 0.0,
+                onChanged: (v) => widget.motor.kCos = v,
+                markAsUsed: () => setState(() => widget.motor.usePIDFF = true),
+              ),
               _buildGroupedTextField(
                 label: 'kV2', initialValue: widget.motor.kV2, defaultValue: 0.0,
                 onChanged: (v) => widget.motor.kV2 = v,
-                markAsUsed: () => setState(() => widget.motor.useAdvancedFF = true),
-              ),
-              _buildGroupedTextField(
-                label: 'kSin', initialValue: widget.motor.kSin, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.kSin = v,
-                markAsUsed: () => setState(() => widget.motor.useAdvancedFF = true),
+                markAsUsed: () => setState(() => widget.motor.usePIDFF = true),
               ),
             ],
           ),

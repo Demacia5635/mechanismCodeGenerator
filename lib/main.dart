@@ -56,14 +56,10 @@ class MotorModel {
   double kV = 0.0;
   double kA = 0.0;
   double kG = 0.0;
+  double kV2 = 0.0;
+  double kCos = 0.0;
   bool usePIDFF = false;
   bool todoPIDFF = false;
-  
-  // Grouped Advanced Feed Forward
-  double kV2 = 0.0;
-  double kSin = 0.0;
-  bool useAdvancedFF = false; 
-  bool todoAdvancedFF = false;
 
   // Grouped Motion Magic
   double maxVelocity = 0.0; 
@@ -696,10 +692,8 @@ class JavaCodeGenerator {
         sb.writeln('        public static final double ${mConst}_KV = ${motor.kV};${_todo(motor.todoPIDFF)}');
         sb.writeln('        public static final double ${mConst}_KA = ${motor.kA};${_todo(motor.todoPIDFF)}');
         sb.writeln('        public static final double ${mConst}_KG = ${motor.kG};${_todo(motor.todoPIDFF)}');
-      }
-      if (motor.useAdvancedFF) {
-        sb.writeln('        public static final double ${mConst}_KV2 = ${motor.kV2};${_todo(motor.todoAdvancedFF)}');
-        sb.writeln('        public static final double ${mConst}_KSIN = ${motor.kSin};${_todo(motor.todoAdvancedFF)}');
+        sb.writeln('        public static final double ${mConst}_KV2 = ${motor.kV2};${_todo(motor.todoPIDFF)}');
+        sb.writeln('        public static final double ${mConst}_KCOS = ${motor.kCos};${_todo(motor.todoPIDFF)}');
       }
       if (motor.useMotionMagic) {
         sb.writeln('        public static final double ${mConst}_MAX_VELOCITY = ${motor.maxVelocity};${_todo(motor.todoMotionMagic)}');
@@ -714,7 +708,7 @@ class JavaCodeGenerator {
 
       sb.writeln('');
       
-      String configArgs = isCanMotor ? '${mConst}_ID, ${mConst}_CANBUS, ${mConst}_NAME' : '${mConst}_ID, ${mConst}_NAME';
+      String configArgs = isCanMotor ? '${mConst}_NAME, ${mConst}_ID, ${mConst}_CANBUS' : '${mConst}_NAMEת ${mConst}_ID';
       sb.writeln('        public static final ${motor.motorType}Config ${mConst}_CONFIG = new ${motor.motorType}Config($configArgs)');
       sb.writeln('            .withBrake(${mConst}_BRAKE)');
       sb.write('            .withInvert(${mConst}_INVERT)');
@@ -737,10 +731,7 @@ class JavaCodeGenerator {
       }
       
       if (motor.usePIDFF) {
-        sb.write('\n            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG)');
-      }
-      if (motor.useAdvancedFF) {
-         sb.write('\n            .withFeedForward(${mConst}_KV2, ${mConst}_KSIN)');
+        sb.write('\n            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG, ${mConst}_KCos, ${mConst}_KV2)');
       }
       if (motor.useMotionMagic) {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
@@ -841,15 +832,15 @@ class JavaCodeGenerator {
       // Construct configArgs correctly based on constructor definitions
       String configArgs;
       if (isCanSensor) {
-        configArgs = '${sConst}_ID, ${sConst}_CANBUS, ${sConst}_NAME';
+        configArgs = '${sConst}_NAME, ${sConst}_ID, ${sConst}_CANBUS';
       } else if (sensor.sensorType == 'Color Sensor') {
         configArgs = '${sConst}_NAME';
       } else if (sensor.sensorType == 'Optical Sensor') {
         configArgs = '${sConst}_NAME, ${sConst}_ID';
       } else if (sensor.sensorType == 'Ultra Sonic Sensor') {
-        configArgs = '${sConst}_ID, ${sConst}_PING_CHANNEL, ${sConst}_NAME';
+        configArgs = '${sConst}_NAME, ${sConst}_ID, ${sConst}_PING_CHANNEL';
       } else {
-        configArgs = '${sConst}_ID, ${sConst}_NAME';
+        configArgs = '${sConst}_NAME,${sConst}_ID';
       }
       
       sb.write('        public static final ${sensor.sensorType.replaceAll(' ', '')}Config ${sConst}_CONFIG = new ${sensor.sensorType.replaceAll(' ', '')}Config($configArgs)');
@@ -1259,7 +1250,7 @@ class JavaCodeGenerator {
     sb.writeln('        ${chassis.brOffset} //BACK RIGHT ${_todo(chassis.todoOffsets)}');
     sb.writeln('      });');
     sb.writeln('');
-    sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(PIGEON_ID, PIGEON_CAN_BUS, NAME + " pigeon");');
+    sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(NAME + " pigeon", PIGEON_ID, PIGEON_CAN_BUS);');
     sb.writeln('');
     sb.writeln('  public static final ChassisConfig CHASSIS_CONFIG = new ChassisConfig(');
     sb.writeln('      NAME,');
@@ -1279,18 +1270,18 @@ class JavaCodeGenerator {
     sb.writeln('');
     sb.writeln('      ans[i] = new SwerveModuleConfig(');
     sb.writeln('          name,');
-    sb.writeln('          new TalonFXConfig(i * 3 + 2, CAN_BUS, name + " Steer")');
-    sb.writeln('              .withPID(STEER_KP, STEER_KI, STEER_KD, STEER_KS, STEER_KV, STEER_KA, 0)');
+    sb.writeln('          new TalonFXConfig(name + " Steer", i * 3 + 2, CAN_BUS)');
+    sb.writeln('              .withPID(STEER_KP, STEER_KI, STEER_KD, STEER_KS, STEER_KV, STEER_KA, 0, 0, 0)');
     sb.writeln('              .withMotionParam(STEER_MOTION_MAGIC_VEL, STEER_MOTION_MAGIC_ACCEL, STEER_MOTION_MAGIC_JERK)');
     sb.writeln('              .withBrake(true)');
     sb.writeln('              .withInvert(true)');
     sb.writeln('              .withRadiansMotor(STEER_GEAR_RATIO)');
     sb.writeln('              .withRampTime(RAMP_TIME_STEER),');
-    sb.writeln('          new TalonFXConfig(i * 3 + 1, CAN_BUS, name + " Drive")');
-    sb.writeln('              .withPID(DRIVE_KP, DRIVE_KI, DRIVE_KD, DRIVE_KS, DRIVE_KV, DRIVE_KA, 0)');
+    sb.writeln('          new TalonFXConfig(name + " Drive", i * 3 + 1, CAN_BUS)');
+    sb.writeln('              .withPID(DRIVE_KP, DRIVE_KI, DRIVE_KD, DRIVE_KS, DRIVE_KV, DRIVE_KA, 0, 0, 0)');
     sb.writeln('              .withBrake(true)');
     sb.writeln('              .withMeterMotor(DRIVE_GEAR_RATIO, WHEEL_DIAMETER),');
-    sb.writeln('          new CancoderConfig(i * 3 + 3, CAN_BUS, name + " Cancoder"))');
+    sb.writeln('          new CancoderConfig(name + " Cancoder", i * 3 + 3, CAN_BUS))');
     sb.writeln('          .withPosion(MODULE_LOCATIONS[i])');
     sb.writeln('          .withSteerOffset(offsets[i]);');
     sb.writeln('    }');
