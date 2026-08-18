@@ -731,7 +731,7 @@ class JavaCodeGenerator {
       }
       
       if (motor.usePIDFF) {
-        sb.write('\n            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG, ${mConst}_KCos, ${mConst}_KV2)');
+        sb.write('\n            .withPID(${mConst}_KP, ${mConst}_KI, ${mConst}_KD, ${mConst}_KS, ${mConst}_KV, ${mConst}_KA, ${mConst}_KG, ${mConst}_KCOS, ${mConst}_KV2)');
       }
       if (motor.useMotionMagic) {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
