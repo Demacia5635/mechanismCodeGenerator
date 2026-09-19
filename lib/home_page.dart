@@ -20,6 +20,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<MechanismModel> _mechanisms = [];
   final ChassisModel _chassis = ChassisModel();
+  final VisionModel _vision = VisionModel();
   final RobotContainerModel _robotContainer = RobotContainerModel();
 
   void _addNewMechanismDialog() {
@@ -81,11 +82,16 @@ class _HomePageState extends State<HomePage> {
     if (_chassis.makeChassis) {
       String className = _chassis.name;
       if (className.isNotEmpty) {
-        className = className[0].toUpperCase() + className.substring(1);
+        className = JavaCodeGenerator.capitalize(className);
       } else {
         className = "Robot";
       }
       allFiles['chassis/${className}ChassisConstants.java'] = JavaCodeGenerator.generateChassisConstants(_chassis);
+    }
+
+    if (_vision.makeVision) {
+      String className = 'VisionConstants';
+      allFiles['vision/${className}.java'] = JavaCodeGenerator.generateVisionConstants(_vision);
     }
 
     if (_robotContainer.makeRobotContainer) {
@@ -486,6 +492,156 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               const SizedBox(height: 24),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+
+            Card(
+              margin: const EdgeInsets.all(16),
+              color: Colors.grey[900],
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    title: const Text('Generate Vision', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    value: _vision.makeVision,
+                    onChanged: (val) => setState(() => _vision.makeVision = val),
+                  ),
+                  if (_vision.makeVision)
+                    ExpansionTile(
+                      title: const Text('Vision Configuration'),
+                      initiallyExpanded: true,
+                      maintainState: true,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_vision.sources.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Text(
+                                    'No vision sources added yet. Click the button below to add one.',
+                                    style: TextStyle(color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              else
+                                ..._vision.sources.map((sourceCfg) => Card(
+                                  color: Colors.grey[850],
+                                  margin: const EdgeInsets.only(bottom: 16.0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: AppTextFormField(
+                                                initialValue: sourceCfg.name,
+                                                decoration: const InputDecoration(labelText: 'Source Name', border: OutlineInputBorder(), isDense: true),
+                                                onChanged: (val) => sourceCfg.name = val,
+                                                previewTransformer: (text) {
+                                                  if (text.isEmpty) return '';
+                                                  return JavaCodeGenerator.capitalize(text); 
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: DropdownButtonFormField<String>(
+                                                value: sourceCfg.type, 
+                                                decoration: const InputDecoration(labelText: 'Source Type', border: OutlineInputBorder(), isDense: true),
+                                                items: ['Limelight 2D', 'Limelight 3D', 'Quest']
+                                                    .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                                                    .toList(),
+                                                onChanged: (val) => setState(() => sourceCfg.type = val!),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                              onPressed: () => setState(() => _vision.sources.remove(sourceCfg)),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+                                        
+                                        _buildGroupHeader(
+                                          title: 'Transform3d Offsets',
+                                          isTodo: sourceCfg.todoOffsets,
+                                          onTodoChanged: (val) => setState(() => sourceCfg.todoOffsets = val),
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('Translation', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                                  const SizedBox(height: 8),
+                                                  _buildGroupedTextField(label: 'Offset X', initialValue: sourceCfg.offsetX, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetX = val),
+                                                  const SizedBox(height: 16),
+                                                  _buildGroupedTextField(label: 'Offset Y', initialValue: sourceCfg.offsetY, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetY = val),
+                                                  const SizedBox(height: 16),
+                                                  _buildGroupedTextField(label: 'OffsetZ', initialValue: sourceCfg.offsetZ, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetZ = val),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('Rotation', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                                  const SizedBox(height: 8),
+                                                  _buildGroupedTextField(label: 'Offset Roll', initialValue: sourceCfg.offsetRoll, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetRoll = val),
+                                                  const SizedBox(height: 16),
+                                                  _buildGroupedTextField(label: 'Offset Pitch', initialValue: sourceCfg.offsetPitch, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetPitch = val),
+                                                  const SizedBox(height: 16),
+                                                  _buildGroupedTextField(label: 'Offset Yaw', initialValue: sourceCfg.offsetYaw, defaultValue: 0.0, onChanged: (val) => sourceCfg.offsetYaw = val),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const Divider(height: 32),
+                                        
+                                        _buildGroupHeader(
+                                          title: 'Standard Deviations (STD)',
+                                          isTodo: sourceCfg.todoStd,
+                                          onTodoChanged: (val) => setState(() => sourceCfg.todoStd = val),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 16, runSpacing: 16,
+                                          children: [
+                                            _buildGroupedTextField(label: 'STD X', initialValue: sourceCfg.stdX, defaultValue: 0.0, onChanged: (val) => sourceCfg.stdX = val),
+                                            _buildGroupedTextField(label: 'STD Y', initialValue: sourceCfg.stdY, defaultValue: 0.0, onChanged: (val) => sourceCfg.stdY = val),
+                                            _buildGroupedTextField(label: 'STD Z', initialValue: sourceCfg.stdZ, defaultValue: 0.0, onChanged: (val) => sourceCfg.stdZ = val),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )),
+                              
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: TextButton.icon(
+                                  onPressed: () => setState(() => _vision.sources.add(VisionSourceModel())), 
+                                  icon: const Icon(Icons.add), 
+                                  label: const Text('Add Vision Source')
+                                ),
+                              ),
                             ],
                           ),
                         ),

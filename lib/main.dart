@@ -257,10 +257,36 @@ class ChassisModel {
   bool todoOffsets = true;
 }
 
+class VisionModel {
+  bool makeVision = false;
+
+  List<VisionSourceModel> sources = [];  
+}
+
+class VisionSourceModel {
+  String name = '';
+
+  String type = 'Limelight 3D';
+
+  String offsetX = '0.0';
+  String offsetY = '0.0';
+  String offsetZ = '0.0';
+  String offsetRoll = '0.0';
+  String offsetPitch = '0.0';
+  String offsetYaw = '0.0';
+  bool todoOffsets = false;
+
+  String stdX = '0.0';
+  String stdY = '0.0';
+  String stdZ = '0.0';
+  bool todoStd = false;
+}
+
 class RobotContainerModel {
   bool makeRobotContainer = false;
   String controllerType = 'PS5';
   bool useAnotherChassis = false;
+  bool useAnotherVision = false;
   String anotherChassisClassName = '';
 }
 
@@ -1437,6 +1463,82 @@ class JavaCodeGenerator {
     sb.writeln('    }');
     sb.writeln('    return ans;');
     sb.writeln('  }');
+    sb.writeln('}');
+
+    return sb.toString();
+  }
+
+  static String generateVisionConstants(VisionModel vision) {
+    StringBuffer sb = StringBuffer();
+    
+    String className = 'VisionConstants';
+
+    sb.writeln('package frc.robot.vision;');
+    sb.writeln('');
+    
+    sb.writeln('import org.ejml.simple.SimpleMatrix;');
+    sb.writeln('import edu.wpi.first.math.Matrix;');
+    sb.writeln('import edu.wpi.first.math.geometry.Rotation3d;');
+    sb.writeln('import edu.wpi.first.math.geometry.Transform3d;');
+    sb.writeln('import edu.wpi.first.math.geometry.Translation3d;');
+    sb.writeln('import edu.wpi.first.math.numbers.N1;');
+    sb.writeln('import edu.wpi.first.math.numbers.N3;');
+    sb.writeln('import frc.demacia.RobotPose.Vision.VisionConfig;');
+
+    bool hasLimelight2d = false;
+    bool hasLimelight3d = false;
+    bool hasQuest = false;
+
+    for (var Source in vision.sources) {
+      if (Source.type == 'Limelight 2D') hasLimelight2d = true;
+      if (Source.type == 'Limelight 3D') hasLimelight3d = true;
+      if (Source.type == 'Quest') hasQuest = true;
+    }
+
+    if (hasLimelight2d) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera2dConfig;');
+    }
+    if (hasLimelight3d) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera3dConfig;');
+    }
+    if (hasQuest) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.QuestConfig;');
+    }
+    sb.writeln('');
+    sb.writeln('public class $className {');
+    sb.writeln('');
+
+    for (var source in vision.sources) {
+      String constName = constantize(source.name);
+
+      String type = 'LimelightTagCamera3d';
+
+      if (source.type == 'Limelight 2D') {
+        type = 'LimelightTagCamera2d';
+      }
+      if (source.type == 'Limelight 3D') {
+        type = 'LimelightTagCamera3d';
+      }
+      if (source.type == 'Quest') {
+        type = 'Quest';
+      }
+
+      sb.writeln('    public static final String ${constName}_NAME = "${source.name}";');
+      sb.writeln('    public static final Transform3d ${constName}_OFFSET = new Transform3d(');
+      sb.writeln('        new Translation3d(${source.offsetX}, ${source.offsetY}, ${source.offsetZ}), ${_todo(source.todoOffsets)}');
+      sb.writeln('        new Rotation3d(${source.offsetRoll}, ${source.offsetPitch}, ${source.offsetYaw})); ${_todo(source.todoOffsets)}');
+      sb.writeln('    public static final Matrix<N3, N1> ${constName}_STD = new Matrix<>(new SimpleMatrix(new double[] { ${source.stdX}, ${source.stdY}, ${source.stdZ} })); ${_todo(source.todoStd)}');
+      sb.writeln('    public static final ${type}Config ${constName}_CONFIG = new ${type}Config(${constName}_NAME, ${constName}_OFFSET, ${constName}_STD);');
+      sb.writeln('');
+    }
+
+    sb.writeln('    public static final VisionConfig visionConfig = new VisionConfig()');
+    for (var source in vision.sources) {
+      String constName = constantize(source.name);
+    
+      sb.writeln('        .addSource(${constName}_CONFIG)');
+    }
+    sb.writeln('        ;');
     sb.writeln('}');
 
     return sb.toString();
