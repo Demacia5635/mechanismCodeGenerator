@@ -46,6 +46,10 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                   initialValue: widget.sensor.name,
                   decoration: const InputDecoration(labelText: 'Sensor Name', border: OutlineInputBorder()),
                   onChanged: (val) => widget.sensor.name = val,
+                  previewTransformer: (text) {
+                  if (text.isEmpty) return '';
+                    return JavaCodeGenerator.capitalize(text); 
+                },
                 ),
               ),
               const SizedBox(width: 16),

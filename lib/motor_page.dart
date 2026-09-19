@@ -34,6 +34,10 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                   initialValue: widget.motor.name,
                   decoration: const InputDecoration(labelText: 'Motor Name', border: OutlineInputBorder()),
                   onChanged: (val) => widget.motor.name = val,
+                  previewTransformer: (text) {
+                    if (text.isEmpty) return '';
+                      return JavaCodeGenerator.capitalize(text); 
+                  },
                 ),
               ),
               const SizedBox(width: 16),

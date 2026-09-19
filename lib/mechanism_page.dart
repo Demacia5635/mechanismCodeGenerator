@@ -81,6 +81,10 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
               border: OutlineInputBorder(),
             ),
             onChanged: (val) => widget.mechanism.name = val.isEmpty ? 'Unnamed' : val,
+            previewTransformer: (text) {
+              if (text.isEmpty) return '';
+                return JavaCodeGenerator.capitalize(text); 
+            },
           ),
           const SizedBox(height: 24),
 
@@ -179,6 +183,38 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                           onChanged: (val) => setState(() => widget.mechanism.statesType = val!),
                         ),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 3.0),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(4.0),
+                            border: Border.all(color: Colors.grey.shade700),
+                          ),
+                          child: const Text(
+                            'IDLE',
+                            style: TextStyle(color: Colors.grey, fontSize: 16.0),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            borderRadius: BorderRadius.circular(4.0),
+                            border: Border.all(color: Colors.grey.shade700),
+                          ),
+                          child: const Text(
+                            'TESTING',
+                            style: TextStyle(color: Colors.grey, fontSize: 16.0),
+                          ),
+                        ),
+                      ),
                       ...widget.mechanism.states.map((stateCfg) => Card(
                         color: Colors.grey[850],
                         margin: const EdgeInsets.all(8.0),
@@ -194,6 +230,10 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                                       initialValue: stateCfg.name,
                                       decoration: const InputDecoration(labelText: 'State Name', border: OutlineInputBorder(), isDense: true),
                                       onChanged: (val) => stateCfg.name = val,
+                                      previewTransformer: (text) {
+                                        if (text.isEmpty) return '';
+                                          return JavaCodeGenerator.constantize(text); 
+                                      },
                                     ),
                                   ),
                                   IconButton(

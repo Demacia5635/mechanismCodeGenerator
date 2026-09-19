@@ -36,6 +36,10 @@ class _HomePageState extends State<HomePage> {
               hintText: 'e.g. Intake',
             ),
             onChanged: (val) => tempName = val,
+            previewTransformer: (text) {
+              if (text.isEmpty) return '';
+              return JavaCodeGenerator.capitalize(text);
+            },
           ),
           actions: [
             TextButton(
@@ -159,6 +163,10 @@ class _HomePageState extends State<HomePage> {
                                       initialValue: _chassis.name,
                                       decoration: const InputDecoration(labelText: 'Chassis Name', border: OutlineInputBorder()),
                                       onChanged: (val) => _chassis.name = val,
+                                      previewTransformer: (text) {
+                                        if (text.isEmpty) return '';
+                                          return '${JavaCodeGenerator.capitalize(text)}ChassisConstants'; 
+                                      },
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -563,11 +571,11 @@ class _HomePageState extends State<HomePage> {
                                     decoration: const InputDecoration(labelText: 'Chassis Class Name', border: OutlineInputBorder(),),
                                     onChanged: (val) {_robotContainer.anotherChassisClassName = val;},
                                     inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp(r'[A-Za-z0-9_]'),
-                                    ),
-                                    FirstCharNotDigitFormatter(),
-                                  ],
+                                      FilteringTextInputFormatter.allow(
+                                        RegExp(r'[A-Za-z0-9_]'),
+                                      ),
+                                      FirstCharNotDigitFormatter(),
+                                    ],
                                   ),
                                 ],
                               ],

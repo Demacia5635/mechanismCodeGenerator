@@ -279,24 +279,64 @@ class FirstCharNotDigitFormatter extends TextInputFormatter {
   }
 }
 
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
     this.onChanged,
     this.decoration,
     this.autofocus = false,
+    this.previewTransformer,
   });
 
   final ValueChanged<String>? onChanged;
   final InputDecoration? decoration;
   final bool autofocus;
+  final String Function(String)? previewTransformer;
+
+  @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  late final TextEditingController _controller;
+  String _previewText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _controller.addListener(_updatePreview);
+  }
+
+  void _updatePreview() {
+    if (widget.previewTransformer != null) {
+      final newPreview = widget.previewTransformer!(_controller.text);
+      if (_previewText != newPreview) {
+        setState(() {
+          _previewText = newPreview;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveDecoration = (widget.decoration ?? const InputDecoration()).copyWith(
+      helperText: _previewText.isNotEmpty ? 'Generated Name: $_previewText' : null,
+      helperStyle: const TextStyle(color: Colors.blueAccent),
+    );
+
     return TextField(
-      autofocus: autofocus,
-      decoration: decoration,
-      onChanged: onChanged,
+      controller: _controller,
+      autofocus: widget.autofocus,
+      decoration: effectiveDecoration,
+      onChanged: widget.onChanged,
       inputFormatters: [
         FilteringTextInputFormatter.allow(
           RegExp(r'[A-Za-z0-9_ ]'),
@@ -307,7 +347,7 @@ class AppTextField extends StatelessWidget {
   }
 }
 
-class AppTextFormField extends StatelessWidget {
+class AppTextFormField extends StatefulWidget {
   const AppTextFormField({
     super.key,
     this.controller,
@@ -318,6 +358,7 @@ class AppTextFormField extends StatelessWidget {
     this.keyboardType,
     this.obscureText = false,
     this.maxLines = 1,
+    this.previewTransformer,
   });
 
   final TextEditingController? controller;
@@ -328,18 +369,58 @@ class AppTextFormField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final int? maxLines;
+  final String Function(String)? previewTransformer;
+
+  @override
+  State<AppTextFormField> createState() => _AppTextFormFieldState();
+}
+
+class _AppTextFormFieldState extends State<AppTextFormField> {
+  late final TextEditingController _controller;
+  String _previewText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+    _updatePreview();
+    _controller.addListener(_updatePreview);
+  }
+
+  void _updatePreview() {
+    if (widget.previewTransformer != null) {
+      final newPreview = widget.previewTransformer!(_controller.text);
+      if (_previewText != newPreview) {
+        setState(() {
+          _previewText = newPreview;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final effectiveDecoration = (widget.decoration ?? const InputDecoration()).copyWith(
+      helperText: _previewText.isNotEmpty ? 'Generated Name: $_previewText' : null,
+      helperStyle: const TextStyle(color: Colors.blueAccent),
+    );
+
     return TextFormField(
-      controller: controller,
-      initialValue: initialValue,
-      decoration: decoration,
-      validator: validator,
-      onChanged: onChanged,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      maxLines: maxLines,
+      controller: _controller,
+      decoration: effectiveDecoration,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      keyboardType: widget.keyboardType,
+      obscureText: widget.obscureText,
+      maxLines: widget.maxLines,
       inputFormatters: [
         FilteringTextInputFormatter.allow(
           RegExp(r'[A-Za-z0-9_ ]'),
@@ -568,7 +649,7 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
 // ==========================================
 
 class JavaCodeGenerator {
-  static String _capitalize(String s) {
+  static String capitalize(String s) {
     if (s.isEmpty) return '';
     List<String> words = s.split(RegExp(r'[\s_\-]+'));
     String cap = words.map((word) {
@@ -582,7 +663,7 @@ class JavaCodeGenerator {
     return cap;
   }
   
-  static String _constantize(String s) {
+  static String constantize(String s) {
     if (s.isEmpty) return '';
     String replaced = s.replaceAll(RegExp(r'[\s\-]+'), '_');
     replaced = replaced.replaceAllMapped(
@@ -599,8 +680,8 @@ class JavaCodeGenerator {
     
     if (mech.name.trim().isEmpty) return files;
 
-    String mechNameLower = _capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1);
-    String mechNameCap = _capitalize(mech.name);
+    String mechNameLower = capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1);
+    String mechNameCap = capitalize(mech.name);
     
     for (int i = 0; i < mech.motors.length; i++) {
       String name = mech.motors[i].name;
@@ -644,7 +725,7 @@ class JavaCodeGenerator {
 
     for (var calibration in mech.calibrationCommands) {
       if (calibration.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(calibration.motorName);
+      String motorNameCap = capitalize(calibration.motorName);
       String cmdName = '${motorNameCap}CalibrationCommand';
       files['$mechNameLower/commands/$cmdName.java'] = _generateCalibrationCommand(mech, calibration, mechNameCap, mechNameLower, cmdName);
     }
@@ -654,7 +735,7 @@ class JavaCodeGenerator {
 
   static String _generateConstants(MechanismModel mech, String mechNameCap, String mechNameLower) {
     StringBuffer sb = StringBuffer();
-    String mechConstName = '${_constantize(mech.name)}_NAME';
+    String mechConstName = '${constantize(mech.name)}_NAME';
 
     sb.writeln('package frc.robot.$mechNameLower;');
     sb.writeln('');
@@ -690,8 +771,8 @@ class JavaCodeGenerator {
 
     // Motors Constants
     for (var motor in mech.motors) {
-      String mConst = _constantize(motor.name);
-      String mClass = '${_capitalize(motor.name)}Constants';
+      String mConst = constantize(motor.name);
+      String mClass = '${capitalize(motor.name)}Constants';
       
       sb.writeln('    public static final class $mClass {');
       sb.writeln('        public static final String ${mConst}_NAME = "${motor.name}";');
@@ -811,8 +892,8 @@ class JavaCodeGenerator {
     // Sensors Constants
     for (var sensor in mech.sensors) {
       String sBaseName = '${sensor.name} ${sensor.sensorType}';
-      String sConst = _constantize(sBaseName);
-      String sClass = '${_capitalize(sBaseName)}Constants';
+      String sConst = constantize(sBaseName);
+      String sClass = '${capitalize(sBaseName)}Constants';
       
       sb.writeln('    public static final class $sClass {');
       sb.writeln('        public static final String ${sConst}_NAME = "$sBaseName";');
@@ -941,7 +1022,7 @@ class JavaCodeGenerator {
       }
       for (int i = 0; i < mech.states.length; i++) {
         var state = mech.states[i];
-        String stateName = _constantize(state.name.isEmpty ? 'STATE_${i + 1}' : state.name);
+        String stateName = constantize(state.name.isEmpty ? 'STATE_${i + 1}' : state.name);
         
         if (mech.statesType == 'fixed states') {
           List<String> values = [];
@@ -974,7 +1055,7 @@ class JavaCodeGenerator {
 
   static String _generateSubsystem(MechanismModel mech, String mechNameCap, String mechNameLower) {
     StringBuffer sb = StringBuffer();
-    String mechConstName = '${_constantize(mech.name)}_NAME';
+    String mechConstName = '${constantize(mech.name)}_NAME';
 
     sb.writeln('package frc.robot.$mechNameLower.subsystems;');
     sb.writeln('');
@@ -1008,17 +1089,17 @@ class JavaCodeGenerator {
       sb.writeln('import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;');
       for (var cal in mech.calibrationCommands) {
         if (cal.motorName == 'No Motors Available') continue;
-        sb.writeln('import frc.robot.$mechNameLower.commands.${_capitalize(cal.motorName)}CalibrationCommand;');
+        sb.writeln('import frc.robot.$mechNameLower.commands.${capitalize(cal.motorName)}CalibrationCommand;');
       }
     }
     
     for (var motor in mech.motors) {
-      String mClass = '${_capitalize(motor.name)}Constants';
+      String mClass = '${capitalize(motor.name)}Constants';
       sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.$mClass.*;');
     }
     for (var sensor in mech.sensors) {
       String sBaseName = '${sensor.name} ${sensor.sensorType}';
-      String sClass = '${_capitalize(sBaseName)}Constants';
+      String sClass = '${capitalize(sBaseName)}Constants';
       sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.$sClass.*;');
     }
     
@@ -1034,7 +1115,7 @@ class JavaCodeGenerator {
     
     sb.writeln('        new MotorInterface[] {');
     for (var motor in mech.motors) {
-      String mConst = _constantize(motor.name);
+      String mConst = constantize(motor.name);
       sb.writeln('            new ${motor.motorType}Motor(${mConst}_CONFIG),');
     }
     sb.writeln('        }, ');
@@ -1043,7 +1124,7 @@ class JavaCodeGenerator {
     if (mech.sensors.isNotEmpty) {
       for (var sensor in mech.sensors) {
         String sBaseName = '${sensor.name} ${sensor.sensorType}';
-        String sConst = _constantize(sBaseName);
+        String sConst = constantize(sBaseName);
         sb.writeln('            new ${sensor.sensorType.replaceAll(' ', '')}(${sConst}_CONFIG),');
       }
     }
@@ -1056,13 +1137,13 @@ class JavaCodeGenerator {
     
     for (var limit in mech.limits) {
       if (limit.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(limit.motorName);
+      String mConst = constantize(limit.motorName);
       sb.writeln('        addLimit(${mConst}_NAME, ${mConst}_MIN_LIMIT, ${mConst}_MAX_LIMIT);');
     }
 
     for (var pc in mech.powerCommands) {
       if (pc.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(pc.motorName);
+      String mConst = constantize(pc.motorName);
       String supplierLogic = '0.0';
       switch (pc.supplier) {
         case 'Controller rightX': supplierLogic = 'RobotContainer.controller.getRightX()'; break;
@@ -1075,8 +1156,8 @@ class JavaCodeGenerator {
 
     for (var autoCal in mech.autoCalibrations) {
       if (autoCal.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(autoCal.motorName);
-      String motorNameCap = _capitalize(autoCal.motorName);
+      String mConst = constantize(autoCal.motorName);
+      String motorNameCap = capitalize(autoCal.motorName);
 
       bool reuseCmdMethod = false;
       var cmdCal = mech.calibrationCommands.where((c) => c.motorName == autoCal.motorName).firstOrNull;
@@ -1091,9 +1172,9 @@ class JavaCodeGenerator {
 
     for (var cal in mech.calibrationCommands) {
       if (cal.motorName == 'No Motors Available') continue;
-      String mConst = _constantize(cal.motorName);
-      String mechNameConst = _constantize(mech.name);
-      sb.writeln('        SmartDashboard.putData(${mechNameConst}_NAME + "/" + ${mConst}_NAME + " Calibration Command", new ${_capitalize(cal.motorName)}CalibrationCommand(this));');
+      String mConst = constantize(cal.motorName);
+      String mechNameConst = constantize(mech.name);
+      sb.writeln('        SmartDashboard.putData(${mechNameConst}_NAME + "/" + ${mConst}_NAME + " Calibration Command", new ${capitalize(cal.motorName)}CalibrationCommand(this));');
     }
 
     sb.writeln('    }');
@@ -1108,8 +1189,8 @@ class JavaCodeGenerator {
     sb.writeln('');
 
     for (var motor in mech.motors) {
-      String mConst = _constantize(motor.name);
-      String motorNameCap = _capitalize(motor.name);
+      String mConst = constantize(motor.name);
+      String motorNameCap = capitalize(motor.name);
       sb.writeln('    public void set${motorNameCap}Power(double power) {');
       sb.writeln('        setPower(${mConst}_NAME, power);');
       sb.writeln('    }');
@@ -1120,7 +1201,7 @@ class JavaCodeGenerator {
         mode = 'MOTION';
       }
       if (mode != 'DUTYCYCLE') {
-        String modeCap = _capitalize(mode.toLowerCase());
+        String modeCap = capitalize(mode.toLowerCase());
 
         sb.writeln('    public void set${motorNameCap}${modeCap}(double ${mode.toLowerCase()}) {');
         sb.writeln('        set${modeCap}(${mConst}_NAME, ${mode.toLowerCase()});');
@@ -1141,7 +1222,7 @@ class JavaCodeGenerator {
       sb.writeln('    public double[] get${mechNameCap}Values() {');
       sb.writeln('        switch ((${mechNameCap}States) state) {');
       for (var state in mech.states) {
-        String sName = _constantize(state.name.isEmpty ? 'STATE' : state.name);
+        String sName = constantize(state.name.isEmpty ? 'STATE' : state.name);
         sb.writeln('            case $sName:');
         sb.writeln('                break;');
       }
@@ -1160,7 +1241,7 @@ class JavaCodeGenerator {
         var sensor = mech.sensors.where((s) => s.name == sensorName).firstOrNull;
         if (sensor != null) {
           String sBaseName = '${sensor.name} ${sensor.sensorType}';
-          String sConst = _constantize(sBaseName);
+          String sConst = constantize(sBaseName);
           sb.writeln('        return ((${sensor.sensorType.replaceAll(' ', '')}) getSensor(${sConst}_NAME)).get();');
         } else {
           sb.writeln('        return false; // Sensor not found');
@@ -1174,13 +1255,13 @@ class JavaCodeGenerator {
 
     for (var cmdCal in mech.calibrationCommands) {
       if (cmdCal.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(cmdCal.motorName);
+      String motorNameCap = capitalize(cmdCal.motorName);
       writeConditionMethod('at${motorNameCap}ResetPos', cmdCal.atResetPosMethod, cmdCal.sensorName);
     }
 
     for (var autoCal in mech.autoCalibrations) {
       if (autoCal.motorName == 'No Motors Available') continue;
-      String motorNameCap = _capitalize(autoCal.motorName);
+      String motorNameCap = capitalize(autoCal.motorName);
       
       var cmdCal = mech.calibrationCommands.where((cmd) => cmd.motorName == autoCal.motorName).firstOrNull;
       bool isDifferent = true;
@@ -1227,9 +1308,9 @@ class JavaCodeGenerator {
 
   static String _generateCalibrationCommand(MechanismModel mech, CalibrationCmdConfig calib, String mechNameCap, String mechNameLower, String cmdName) {
     StringBuffer sb = StringBuffer();
-    String motorNameCap = _capitalize(calib.motorName);
+    String motorNameCap = capitalize(calib.motorName);
     String mClass = '${motorNameCap}Constants';
-    String mConst = _constantize(calib.motorName);
+    String mConst = constantize(calib.motorName);
     
     sb.writeln('package frc.robot.$mechNameLower.commands;');
     sb.writeln('');
@@ -1259,7 +1340,7 @@ class JavaCodeGenerator {
   static String generateChassisConstants(ChassisModel chassis) {
     StringBuffer sb = StringBuffer();
     
-    String className = '${_capitalize(chassis.name)}ChassisConstants';
+    String className = '${capitalize(chassis.name)}ChassisConstants';
     String constName = '${chassis.name} Chassis';
 
     sb.writeln('package frc.robot.chassis;');
@@ -1374,12 +1455,12 @@ class JavaCodeGenerator {
     if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('import frc.demacia.utils.chassis.Chassis;');
       sb.writeln('import frc.demacia.utils.chassis.DriveCommand;');
-      sb.writeln('import frc.robot.chassis.${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${_capitalize(chassis.name)}ChassisConstants'};');
+      sb.writeln('import frc.robot.chassis.${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${capitalize(chassis.name)}ChassisConstants'};');
     }
     for (var mech in mechanisms) {
-      sb.writeln('import frc.robot.${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.subsystems.${_capitalize(mech.name)};');
+      sb.writeln('import frc.robot.${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.subsystems.${capitalize(mech.name)};');
       if (mech.useStates && mech.useDefaultCommand) {
-        sb.writeln('import frc.robot.${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.commands.${_capitalize(mech.name)}Command;');
+        sb.writeln('import frc.robot.${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.commands.${capitalize(mech.name)}Command;');
       }
     }
     sb.writeln('');
@@ -1397,7 +1478,7 @@ class JavaCodeGenerator {
     sb.writeln('  public static CommandController controller = new CommandController(0, ControllerType.k${robotContainer.controllerType});');
     sb.writeln('');
     for (var mech in mechanisms) {
-      sb.writeln('  private ${_capitalize(mech.name)} ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)};');
+      sb.writeln('  private ${capitalize(mech.name)} ${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)};');
     }
     if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('  public static DriveCommand driveCommand;');
@@ -1409,11 +1490,11 @@ class JavaCodeGenerator {
     sb.writeln('  public RobotContainer() {');
     sb.writeln('    SmartDashboard.putData("RC", this);');
     if (chassis.makeChassis || robotContainer.useAnotherChassis) {
-      sb.writeln('    Chassis.initialize(${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${_capitalize(chassis.name)}ChassisConstants'}.CHASSIS_CONFIG);');
+      sb.writeln('    Chassis.initialize(${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${capitalize(chassis.name)}ChassisConstants'}.CHASSIS_CONFIG);');
       sb.writeln('    driveCommand = new DriveCommand(Chassis.getInstance(), controller);');
     }
     for (var mech in mechanisms) {
-      sb.writeln('    ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)} = ${_capitalize(mech.name)}.getInstance();');
+      sb.writeln('    ${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)} = ${capitalize(mech.name)}.getInstance();');
     }
     sb.writeln('');
     sb.writeln('    configureBindings();');
@@ -1431,7 +1512,7 @@ class JavaCodeGenerator {
     }
     for (var mech in mechanisms) {
       if (mech.useStates && mech.useDefaultCommand) {
-        sb.writeln('    ${_capitalize(mech.name)[0].toLowerCase() + _capitalize(mech.name).substring(1)}.setDefaultCommand(new ${_capitalize(mech.name)}Command());');
+        sb.writeln('    ${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.setDefaultCommand(new ${capitalize(mech.name)}Command());');
       }
     }
     sb.writeln('  }');
