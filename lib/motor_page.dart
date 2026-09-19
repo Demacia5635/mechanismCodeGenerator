@@ -130,7 +130,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             defaultValue: '12.0',
             initialUse: widget.motor.useMaxVolt,
             initialTodo: widget.motor.todoMaxVolt,
-            onChanged: (val) => widget.motor.maxVolt = double.tryParse(val) ?? 12.0,
+            onChanged: (val) => widget.motor.maxVolt = val,
             onUseChanged: (checked) => widget.motor.useMaxVolt = checked,
             onTodoChanged: (todo) => widget.motor.todoMaxVolt = todo,
           ),
@@ -140,7 +140,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             defaultValue: '40.0',
             initialUse: widget.motor.useMaxCurrent,
             initialTodo: widget.motor.todoMaxCurrent,
-            onChanged: (val) => widget.motor.maxCurrent = double.tryParse(val) ?? 40.0,
+            onChanged: (val) => widget.motor.maxCurrent = val,
             onUseChanged: (checked) => widget.motor.useMaxCurrent = checked,
             onTodoChanged: (todo) => widget.motor.todoMaxCurrent = todo,
           ),
@@ -150,7 +150,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             defaultValue: '0.3',
             initialUse: widget.motor.useRampUpTime,
             initialTodo: widget.motor.todoRampUpTime,
-            onChanged: (val) => widget.motor.rampUpTime = double.tryParse(val) ?? 0.3,
+            onChanged: (val) => widget.motor.rampUpTime = val,
             onUseChanged: (checked) => widget.motor.useRampUpTime = checked,
             onTodoChanged: (todo) => widget.motor.todoRampUpTime = todo,
           ),
@@ -186,7 +186,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                       initialValue: widget.motor.gearRatio.toString(),
                       decoration: const InputDecoration(labelText: 'Gear Ratio', border: OutlineInputBorder(), isDense: true),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                      onChanged: (val) => widget.motor.gearRatio = double.tryParse(val) ?? 1.0,
+                      onChanged: (val) => widget.motor.gearRatio = val,
                     ),
                   ),
                 ],
@@ -221,7 +221,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                           initialValue: widget.motor.gearRatio.toString(),
                           decoration: const InputDecoration(labelText: 'Gear Ratio', border: OutlineInputBorder(), isDense: true),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                          onChanged: (val) => widget.motor.gearRatio = double.tryParse(val) ?? 1.0,
+                          onChanged: (val) => widget.motor.gearRatio = val,
                         ),
                       ),
                     ],
@@ -238,7 +238,7 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                           initialValue: widget.motor.diameter.toString(),
                           decoration: const InputDecoration(labelText: 'Diameter (Meters)', border: OutlineInputBorder(), isDense: true),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                          onChanged: (val) => widget.motor.diameter = double.tryParse(val) ?? 1.0,
+                          onChanged: (val) => widget.motor.diameter = val,
                         ),
                       ),
                     ],
@@ -413,25 +413,24 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
 
   Widget _buildGroupedTextField({
     required String label,
-    required double? initialValue,
+    required String? initialValue,
     required double defaultValue,
-    required Function(double) onChanged,
-    required Function() markAsUsed,
+    required Function(String) onChanged,
+    VoidCallback? markAsUsed, 
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
       child: DoubleTextFormField(
-        initialValue: initialValue?.toString() ?? defaultValue.toString(),
+        initialValue: initialValue ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           isDense: true,
         ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        keyboardType: TextInputType.text, 
         onChanged: (val) {
-          double parsed = double.tryParse(val) ?? defaultValue;
-          onChanged(parsed);
-          if (parsed != defaultValue) {
+          onChanged(val.isEmpty ? defaultValue.toString() : val);
+          if (markAsUsed != null) {
             markAsUsed();
           }
         },

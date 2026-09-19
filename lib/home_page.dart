@@ -222,7 +222,7 @@ class _HomePageState extends State<HomePage> {
                                       decoration: const InputDecoration(labelText: 'Steer Gear Ratio', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
                                       onChanged: (val) {
-                                        _chassis.steerGearRatio = double.tryParse(val) ?? 0;
+                                        _chassis.steerGearRatio = val;
                                       },
                                     ),
                                   ),
@@ -241,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                                       decoration: const InputDecoration(labelText: 'Drive Gear Ratio', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
                                       onChanged: (val) {
-                                        _chassis.driveGearRatio = double.tryParse(val) ?? 0;
+                                        _chassis.driveGearRatio = val;
                                       },
                                     ),
                                   ),
@@ -261,7 +261,7 @@ class _HomePageState extends State<HomePage> {
                                       keyboardType: TextInputType.number,
                                       onChanged: (val) {
                                         if (val.isNotEmpty) {
-                                          _chassis.wheelDiameter = double.tryParse(val) ?? 0;
+                                          _chassis.wheelDiameter = val;
                                         }
                                       },
                                     ),
@@ -380,7 +380,7 @@ class _HomePageState extends State<HomePage> {
                                       keyboardType: TextInputType.number,
                                       onChanged: (val) {
                                         if (val.isNotEmpty) {
-                                          _chassis.maxDriveVelocity = double.tryParse(val) ?? 0;
+                                          _chassis.maxDriveVelocity = val;
                                         }
                                       },
                                     ),
@@ -400,7 +400,7 @@ class _HomePageState extends State<HomePage> {
                                       decoration: const InputDecoration(labelText: 'Ramp Time (Steer)', border: OutlineInputBorder()),
                                       keyboardType: TextInputType.number,
                                       onChanged: (val) {
-                                        _chassis.rampTimeSteer = double.tryParse(val) ?? 0;
+                                        _chassis.rampTimeSteer = val;
                                       },
                                     ),
                                   ),
@@ -417,13 +417,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flX = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flY = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.flOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.flOffset = val)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -434,13 +434,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frX = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frY = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.frOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.frOffset = val)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -451,13 +451,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blX = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blY = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.blOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.blOffset = val)),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -468,13 +468,13 @@ class _HomePageState extends State<HomePage> {
                               Row(
                                 children: [
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brX = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brX.toString(), decoration: const InputDecoration(labelText: 'X Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brX = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoLocations, onChanged: (val) => setState(() => _chassis.todoLocations = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brY = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brY.toString(), decoration: const InputDecoration(labelText: 'Y Location', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brY = val)),
                                   const SizedBox(width: 8),
                                   _buildTodoFlag(isTodo: _chassis.todoOffsets, onChanged: (val) => setState(() => _chassis.todoOffsets = val)),
-                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brOffset = double.tryParse(val) ?? 0.0)),
+                                  Expanded(child: DoubleTextFormField(initialValue: _chassis.brOffset.toString(), decoration: const InputDecoration(labelText: 'Offset', border: OutlineInputBorder(), isDense: true), keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), onChanged: (val) => _chassis.brOffset = val)),
                                 ],
                               ),
                               const SizedBox(height: 24),
@@ -637,23 +637,26 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildGroupedTextField({
     required String label,
-    required double? initialValue,
+    required String? initialValue,
     required double defaultValue,
-    required Function(double) onChanged,
+    required Function(String) onChanged,
+    VoidCallback? markAsUsed, 
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
       child: DoubleTextFormField(
-        initialValue: initialValue?.toString() ?? defaultValue.toString(),
+        initialValue: initialValue ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           isDense: true,
         ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        keyboardType: TextInputType.text, 
         onChanged: (val) {
-          double parsed = double.tryParse(val) ?? defaultValue;
-          onChanged(parsed);
+          onChanged(val.isEmpty ? defaultValue.toString() : val);
+          if (markAsUsed != null) {
+            markAsUsed();
+          }
         },
       ),
     );

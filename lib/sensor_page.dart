@@ -154,7 +154,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
               label: 'Offset',
               initialValue: widget.sensor.offset.toString(), defaultValue: '0.0',
               initialUse: widget.sensor.useOffset, initialTodo: widget.sensor.todoOffset,
-              onChanged: (val) => widget.sensor.offset = double.tryParse(val) ?? 0.0,
+              onChanged: (val) => widget.sensor.offset = val,
               onUseChanged: (c) => widget.sensor.useOffset = c, onTodoChanged: (t) => widget.sensor.todoOffset = t,
             ),
           ],
@@ -164,7 +164,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
               label: 'Full Range (Radians)',
               initialValue: widget.sensor.fullRange.toString(), defaultValue: '6.28318',
               initialUse: widget.sensor.useFullRange, initialTodo: widget.sensor.todoFullRange,
-              onChanged: (val) => widget.sensor.fullRange = double.tryParse(val) ?? 6.28318,
+              onChanged: (val) => widget.sensor.fullRange = val,
               onUseChanged: (c) => widget.sensor.useFullRange = c, onTodoChanged: (t) => widget.sensor.todoFullRange = t,
             ),
             Row(
@@ -174,7 +174,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                     label: 'Min Range',
                     initialValue: widget.sensor.minRange.toString(), defaultValue: '0.0',
                     initialUse: widget.sensor.useMinRange, initialTodo: widget.sensor.todoMinRange,
-                    onChanged: (val) => widget.sensor.minRange = double.tryParse(val) ?? 0.0,
+                    onChanged: (val) => widget.sensor.minRange = val,
                     onUseChanged: (c) => widget.sensor.useMinRange = c, onTodoChanged: (t) => widget.sensor.todoMinRange = t,
                   ),
                 ),
@@ -184,7 +184,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
                     label: 'Max Range',
                     initialValue: widget.sensor.maxRange.toString(), defaultValue: '1.0',
                     initialUse: widget.sensor.useMaxRange, initialTodo: widget.sensor.todoMaxRange,
-                    onChanged: (val) => widget.sensor.maxRange = double.tryParse(val) ?? 1.0,
+                    onChanged: (val) => widget.sensor.maxRange = val,
                     onUseChanged: (c) => widget.sensor.useMaxRange = c, onTodoChanged: (t) => widget.sensor.todoMaxRange = t,
                   ),
                 ),
@@ -197,7 +197,7 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
               label: 'Frequency (Hz)',
               initialValue: widget.sensor.frequency.toString(), defaultValue: '1000.0',
               initialUse: widget.sensor.useFrequency, initialTodo: widget.sensor.todoFrequency,
-              onChanged: (val) => widget.sensor.frequency = double.tryParse(val) ?? 1000.0,
+              onChanged: (val) => widget.sensor.frequency = val,
               onUseChanged: (c) => widget.sensor.useFrequency = c, onTodoChanged: (t) => widget.sensor.todoFrequency = t,
             ),
           ],
@@ -330,25 +330,24 @@ class _SensorEditorPageState extends State<SensorEditorPage> {
 
   Widget _buildGroupedTextField({
     required String label,
-    required double? initialValue,
+    required String? initialValue,
     required double defaultValue,
-    required Function(double) onChanged,
-    required Function() markAsUsed,
+    required Function(String) onChanged,
+    VoidCallback? markAsUsed, 
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
       child: DoubleTextFormField(
-        initialValue: initialValue?.toString() ?? defaultValue.toString(),
+        initialValue: initialValue ?? defaultValue.toString(),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           isDense: true,
         ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        keyboardType: TextInputType.text, 
         onChanged: (val) {
-          double parsed = double.tryParse(val) ?? defaultValue;
-          onChanged(parsed);
-          if (parsed != defaultValue) {
+          onChanged(val.isEmpty ? defaultValue.toString() : val);
+          if (markAsUsed != null) {
             markAsUsed();
           }
         },

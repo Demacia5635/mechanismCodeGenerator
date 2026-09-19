@@ -28,50 +28,50 @@ class MotorModel {
   bool brakeMode = true;
   bool todoBrakeMode = false;
 
-  double maxVolt = 12.0; 
+  String maxVolt = '12.0'; 
   bool useMaxVolt = false;
   bool todoMaxVolt = false;
   
-  double maxCurrent = 40.0; 
+  String maxCurrent = '40.0'; 
   bool useMaxCurrent = false;
   bool todoMaxCurrent = false;
   
-  double rampUpTime = 0.3; 
+  String rampUpTime = '0.3'; 
   bool useRampUpTime = false;
   bool todoRampUpTime = false;
 
   bool useRadiansMotor = false;
-  double gearRatio = 1.0;
+  String gearRatio = '1.0';
   bool todoGearRatio = false;
 
   bool useMeterMotor = false;
-  double diameter = 1.0;
+  String diameter = '1.0';
   bool todoDiameter = false;
 
   // Grouped PID+FF
-  double kP = 0.0;
-  double kI = 0.0;
-  double kD = 0.0;
-  double kS = 0.0;
-  double kV = 0.0;
-  double kA = 0.0;
-  double kG = 0.0;
-  double kV2 = 0.0;
-  double kCos = 0.0;
+  String kP = '0.0';
+  String kI = '0.0';
+  String kD = '0.0';
+  String kS = '0.0';
+  String kV = '0.0';
+  String kA = '0.0';
+  String kG = '0.0';
+  String kV2 = '0.0';
+  String kCos = '0.0';
   bool usePIDFF = false;
   bool todoPIDFF = false;
 
   // Grouped Motion Magic
-  double maxVelocity = 0.0; 
-  double maxAcceleration = 0.0;
-  double maxJerk = 0.0;
+  String maxVelocity = '0.0'; 
+  String maxAcceleration = '0.0';
+  String maxJerk = '0.0';
   bool useMotionMagic = false;
   bool todoMotionMagic = false;
   
   // Grouped Stall Detection
-  double highCurrentThreshold = 0.0; 
-  double lowVelocityThreshold = 0.0;
-  double secondsThreshold = 0.0;
+  String highCurrentThreshold = '0.0'; 
+  String lowVelocityThreshold = '0.0';
+  String secondsThreshold = '0.0';
   bool useStallDetection = false;
   bool todoStallDetection = false;
 }
@@ -90,24 +90,24 @@ class SensorModel {
   bool inverted = false;
   bool todoInverted = false;
   
-  double offset = 0.0; bool useOffset = false; bool todoOffset = false;
-  double fullRange = 6.28318; bool useFullRange = false; bool todoFullRange = false; 
-  double minRange = 0.0; bool useMinRange = false; bool todoMinRange = false;
-  double maxRange = 1.0; bool useMaxRange = false; bool todoMaxRange = false;
+  String offset = '0.0'; bool useOffset = false; bool todoOffset = false;
+  String fullRange = '6.28318'; bool useFullRange = false; bool todoFullRange = false; 
+  String minRange = '0.0'; bool useMinRange = false; bool todoMinRange = false;
+  String maxRange = '1.0'; bool useMaxRange = false; bool todoMaxRange = false;
   
-  double frequency = 1000.0; bool useFrequency = false; bool todoFrequency = false;
+  String frequency = '1000.0'; bool useFrequency = false; bool todoFrequency = false;
   
   // Grouped Pigeon Offsets
-  double pitchOffset = 0.0; 
-  double rollOffset = 0.0; 
-  double yawOffset = 0.0; 
+  String pitchOffset = '0.0'; 
+  String rollOffset = '0.0'; 
+  String yawOffset = '0.0'; 
   bool useOffsets = false; 
   bool todoOffsets = false;
   
   // Grouped Pigeon Scalars
-  double xScalar = 1.0; 
-  double yScalar = 1.0; 
-  double zScalar = 1.0; 
+  String xScalar = '1.0'; 
+  String yScalar = '1.0'; 
+  String zScalar = '1.0'; 
   bool useScalars = false; 
   bool todoScalars = false;
   
@@ -125,9 +125,9 @@ class PowerCommandConfig {
 
 class LimitConfig {
   String motorName = '';
-  double minLimit = 0.0;
+  String minLimit = '0.0';
   bool todoMinLimit = false;
-  double maxLimit = 0.0;
+  String maxLimit = '0.0';
   bool todoMaxLimit = false;
 }
 
@@ -135,7 +135,7 @@ class AutoCalibrationConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
   String sensorName = '';
-  double autoResetPos = 0.0;
+  String autoResetPos = '0.0';
   bool todoResetPos = false;
 }
 
@@ -143,14 +143,14 @@ class CalibrationCmdConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
   String sensorName = '';
-  double power = 0.0;
+  String power = '0.0';
   bool todoPower = false;
-  double resetPos = 0.0;
+  String resetPos = '0.0';
   bool todoResetPos = false;
   bool useStartDelay = false;
-  double startPower = 0.0;
+  String startPower = '0.0';
   bool todoStartPower = false;
-  double startDelaySec = 0.0;
+  String startDelaySec = '0.0';
   bool todoStartDelay = false;
 }
 
@@ -210,50 +210,50 @@ class ChassisModel {
   String canBus = 'CANIvore'; bool todoCanBus = false;
   String pigeonCanBus = 'CANIvore'; bool todoPigeonCanBus = false;
   
-  double steerGearRatio = 287.0 / 11.0; bool todoSteerGearRatio = false;
-  double driveGearRatio = 6.03; bool todoDriveGearRatio = false;
-  double wheelDiameter = 4 * 0.0254; bool todoWheelDiameter = false;
+  String steerGearRatio = '287.0 / 11.0'; bool todoSteerGearRatio = false;
+  String driveGearRatio = '6.03'; bool todoDriveGearRatio = false;
+  String wheelDiameter = '4 * 0.0254'; bool todoWheelDiameter = false;
 
   bool todoSteerPIDFF = false;
-  double steerKP = 0;
-  double steerKI = 0;
-  double steerKD = 0;
-  double steerKS = 0;
-  double steerKV = 0;
-  double steerKA = 0;
+  String steerKP = '0';
+  String steerKI = '0';
+  String steerKD = '0';
+  String steerKS = '0';
+  String steerKV = '0';
+  String steerKA = '0';
 
   bool todoDrivePIDFF = false;
-  double driveKP = 0;
-  double driveKI = 0;
-  double driveKD = 0;
-  double driveKS = 0;
-  double driveKV = 0;
-  double driveKA = 0;
+  String driveKP = '0';
+  String driveKI = '0';
+  String driveKD = '0';
+  String driveKS = '0';
+  String driveKV = '0';
+  String driveKA = '0';
 
   bool todoMotionMagic = false;
-  double motionMagicVel = 100;
-  double motionMagicAccel = 50;
-  double motionMagicJerk = 1000;
+  String motionMagicVel = '100';
+  String motionMagicAccel = '50';
+  String motionMagicJerk = '1000';
 
-  double maxDriveVelocity = 5; bool todoMaxDriveVelocity = false;
-  double rampTimeSteer = 0.25; bool todoRampTimeSteer = false;
+  String maxDriveVelocity = '5'; bool todoMaxDriveVelocity = false;
+  String rampTimeSteer = '0.25'; bool todoRampTimeSteer = false;
 
   // Locations (X, Y)
-  double flX = 0;
-  double flY = 0;
-  double frX = 0;
-  double frY = 0;
-  double blX = 0;
-  double blY = 0;
-  double brX = 0;
-  double brY = 0;
+  String flX = '0';
+  String flY = '0';
+  String frX = '0';
+  String frY = '0';
+  String blX = '0';
+  String blY = '0';
+  String brX = '0';
+  String brY = '0';
   bool todoLocations = true;
 
   // Offsets
-  double flOffset = 0;
-  double frOffset = 0;
-  double blOffset = 0;
-  double brOffset = 0;
+  String flOffset = '0';
+  String frOffset = '0';
+  String blOffset = '0';
+  String brOffset = '0';
   bool todoOffsets = true;
 }
 
@@ -350,7 +350,7 @@ class AppTextFormField extends StatelessWidget {
   }
 }
 
-class DoubleTextFormField extends StatelessWidget {
+class DoubleTextFormField extends StatefulWidget {
   const DoubleTextFormField({
     super.key,
     this.controller,
@@ -373,22 +373,62 @@ class DoubleTextFormField extends StatelessWidget {
   final int? maxLines;
 
   @override
+  State<DoubleTextFormField> createState() => _DoubleTextFormFieldState();
+}
+
+class _DoubleTextFormFieldState extends State<DoubleTextFormField> {
+  final FocusNode _focusNode = FocusNode();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
+    
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        final currentText = _controller.text;
+        final partialMathRegex = RegExp(r'M(?:a(?:t(?:h(?:\.P?)?)?)?)?$');
+        
+        if (partialMathRegex.hasMatch(currentText)) {
+          _controller.text = currentText.replaceAll(partialMathRegex, 'Math.PI');
+          if (widget.onChanged != null) {
+            widget.onChanged!(_controller.text);
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      controller: controller,
-      initialValue: initialValue,
-      decoration: decoration,
-      validator: validator,
-      onChanged: onChanged,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      maxLines: maxLines,
+      controller: _controller,
+      focusNode: _focusNode,
+      decoration: widget.decoration,
+      validator: widget.validator,
+      onChanged: widget.onChanged,
+      keyboardType: widget.keyboardType,
+      obscureText: widget.obscureText,
+      maxLines: widget.maxLines,
       inputFormatters: [
         TextInputFormatter.withFunction((oldValue, newValue) {
           final text = newValue.text;
 
-          if (text.isEmpty ||
-              RegExp(r'^-?\d*\.?\d*$').hasMatch(text)) {
+          final regex = RegExp(
+            r'^\s*[(]*\s*[+\-]?\s*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*\s*[+*/\-]\s*[(]*\s*[+\-]?\s*)*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*\s*|M(?:a(?:t(?:h(?:\.(?:PI?|E)?)?)?)?)?)?$'
+          );
+
+          if (text.isEmpty || regex.hasMatch(text)) {
             return newValue;
           }
 
@@ -626,7 +666,7 @@ class JavaCodeGenerator {
       }
     }
 
-    bool hasCanBus = mech.motors.any((m) => m.motorType == 'TalonFX' || m.motorType == 'TalonSRX') ||
+    bool hasCanBus = mech.motors.any((m) => m.motorType == 'TalonFX') ||
                      mech.sensors.any((s) => s.sensorType == 'Cancoder' || s.sensorType == 'Pigeon');
     
     if (hasCanBus) {
@@ -708,7 +748,7 @@ class JavaCodeGenerator {
 
       sb.writeln('');
       
-      String configArgs = isCanMotor ? '${mConst}_NAME, ${mConst}_ID, ${mConst}_CANBUS' : '${mConst}_NAMEת ${mConst}_ID';
+      String configArgs = isCanMotor ? '${mConst}_NAME, ${mConst}_ID, ${mConst}_CANBUS' : '${mConst}_NAME, ${mConst}_ID';
       sb.writeln('        public static final ${motor.motorType}Config ${mConst}_CONFIG = new ${motor.motorType}Config($configArgs)');
       sb.writeln('            .withBrake(${mConst}_BRAKE)');
       sb.write('            .withInvert(${mConst}_INVERT)');
@@ -1066,6 +1106,36 @@ class JavaCodeGenerator {
     sb.writeln('        return instance;');
     sb.writeln('    }');
     sb.writeln('');
+
+    for (var motor in mech.motors) {
+      String mConst = _constantize(motor.name);
+      String motorNameCap = _capitalize(motor.name);
+      sb.writeln('    public void set${motorNameCap}Power(double power) {');
+      sb.writeln('        setPower(${mConst}_NAME, power);');
+      sb.writeln('    }');
+      sb.writeln('');
+
+      String mode = mech.defaultControlModes[motor.name] ?? 'DUTYCYCLE';
+      if (mode == 'MAGIC_MOTION') {
+        mode = 'MOTION';
+      }
+      if (mode != 'DUTYCYCLE') {
+        String modeCap = _capitalize(mode.toLowerCase());
+
+        sb.writeln('    public void set${motorNameCap}${modeCap}(double ${mode.toLowerCase()}) {');
+        sb.writeln('        set${modeCap}(${mConst}_NAME, ${mode.toLowerCase()});');
+        sb.writeln('    }');
+        sb.writeln('');
+
+        if (mode == 'POSITION_VOLTAGE' || mode == 'MOTION') {
+          modeCap = 'Position';
+        }
+        sb.writeln('    public double get${motorNameCap}${modeCap}() {');
+        sb.writeln('        return getMotor(${mConst}_NAME).getCurrent${modeCap}();');
+        sb.writeln('    }');
+        sb.writeln('');
+      }
+    }
     
     if (mech.useStates && mech.statesType == 'dynamic states') {
       sb.writeln('    public double[] get${mechNameCap}Values() {');
@@ -1079,7 +1149,7 @@ class JavaCodeGenerator {
       sb.writeln('                break;');
       sb.writeln('        }');
       sb.writeln('        ');
-      sb.writeln('        throw new UnsupportedOperationException("Unimplemented method \'get${mechNameCap}Values\'");');
+      sb.writeln('        return new double[] {}; // TODO: Unimplemented method \'get${mechNameCap}Values\'');
       sb.writeln('    }');
       sb.writeln('');
     }
@@ -1093,11 +1163,10 @@ class JavaCodeGenerator {
           String sConst = _constantize(sBaseName);
           sb.writeln('        return ((${sensor.sensorType.replaceAll(' ', '')}) getSensor(${sConst}_NAME)).get();');
         } else {
-          sb.writeln('        throw new UnsupportedOperationException("Sensor not found");');
+          sb.writeln('        return false; // Sensor not found');
         }
       } else {
-        sb.writeln('        // TODO Auto-generated method stub');
-        sb.writeln('        throw new UnsupportedOperationException("Unimplemented method \'$methodName()\'");');
+        sb.writeln('        return false; // Unimplemented method \'$methodName()\'");');
       }
       sb.writeln('    }');
       sb.writeln('');
