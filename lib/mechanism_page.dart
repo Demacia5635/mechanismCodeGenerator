@@ -637,7 +637,20 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                                         'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
                                         'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
                                       ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
-                                      onChanged: (val) => setState(() => widget.mechanism.defaultControlModes[mName] = val!),
+                                      onChanged: (val) {
+                                        if (val != null) {
+                                          setState(() {
+                                            widget.mechanism.defaultControlModes[mName] = val;
+                                            
+                                            if (val != 'DUTYCYCLE') {
+                                              var list = widget.mechanism.settersControlModes.putIfAbsent(mName, () => []);
+                                              if (!list.contains(val)) {
+                                                list.add(val);
+                                              }
+                                            }
+                                          });
+                                        }
+                                      }
                                     ),
                                   ),
                                 ],
@@ -656,7 +669,115 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             ),
           ),
 
-          const SizedBox(height: 400)
+          // --- SETTERS AND GETTERS CONFIGURATION ---
+          Card(
+            color: Colors.grey[900],
+            child: ExpansionTile(
+              title: const Text('Setters and Getters Configuration'),
+              initiallyExpanded: true,
+              maintainState: true,
+              children: [
+                ...widget.mechanism.settersControlModes.entries.expand((entry) {
+                  String mName = entry.key;
+                  List<String> modes = entry.value;
+                  
+                  return modes.asMap().entries.map((modeEntry) {
+                    int modeIndex = modeEntry.key;
+                    String mode = modeEntry.value;
+                    
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: motorNames.contains(mName) ? mName : motorNames.first,
+                              decoration: const InputDecoration(
+                                labelText: 'Motor', 
+                                border: OutlineInputBorder(), 
+                                isDense: true
+                              ),
+                              items: motorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+                              onChanged: (newMotor) {
+                                if (newMotor != null && newMotor != mName) {
+                                  setState(() {
+                                    widget.mechanism.settersControlModes[mName]!.removeAt(modeIndex);
+                                    if (widget.mechanism.settersControlModes[mName]!.isEmpty) {
+                                      widget.mechanism.settersControlModes.remove(mName);
+                                    }
+                                    widget.mechanism.settersControlModes.putIfAbsent(newMotor, () => []).add(mode);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: mode,
+                              decoration: const InputDecoration(
+                                labelText: 'Control Mode', 
+                                border: OutlineInputBorder(), 
+                                isDense: true
+                              ),
+                              items: [
+                                'VOLTAGE', 'VELOCITY', 
+                                'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
+                              ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                              onChanged: (newMode) {
+                                if (newMode != null) {
+                                  setState(() {
+                                    widget.mechanism.settersControlModes[mName]![modeIndex] = newMode;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                            onPressed: () {
+                              setState(() {
+                                widget.mechanism.settersControlModes[mName]!.removeAt(modeIndex);
+                                if (widget.mechanism.settersControlModes[mName]!.isEmpty) {
+                                  widget.mechanism.settersControlModes.remove(mName);
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  });
+                }),
+                
+                if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          String defaultMotor = motorNames.first;
+                          widget.mechanism.settersControlModes
+                              .putIfAbsent(defaultMotor, () => [])
+                              .add('VOLTAGE');
+                        });
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Setter & Getter'),
+                    ),
+                  ),
+
+                if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Add motors to assign setters.', style: TextStyle(color: Colors.grey)),
+                  )
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 400), 
         ],
       ),
     );

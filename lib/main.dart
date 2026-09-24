@@ -179,6 +179,7 @@ class MechanismModel {
   // --- Default Command ---
   bool useDefaultCommand = false;
   Map<String, String> defaultControlModes = {};
+  Map<String, List<String>> settersControlModes = {};
 
   List<String> getMotorNames() {
     List<String> names = [];
@@ -532,7 +533,7 @@ class _DoubleTextFormFieldState extends State<DoubleTextFormField> {
           final text = newValue.text;
 
           final regex = RegExp(
-            r'^\s*[(]*\s*[+\-]?\s*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*\s*[+*/\-]\s*[(]*\s*[+\-]?\s*)*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*\s*|M(?:a(?:t(?:h(?:\.(?:PI?|E)?)?)?)?)?)?$'
+            r'^\s*(?:[(]*\s*[+\-]?\s*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*[+*/\-]\s*[(]*\s*[+\-]?\s*)*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*|M(?:a(?:t(?:h(?:\.(?:PI?|E|t(?:o(?:R(?:a(?:d(?:i(?:a(?:n(?:s(?:\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))?\s*[)]*)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|D(?:o(?:u(?:b(?:l(?:e(?:\.(?:P(?:O(?:S(?:I(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|N(?:E(?:G(?:A(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)\s*$'
           );
 
           if (text.isEmpty || regex.hasMatch(text)) {
@@ -1222,11 +1223,13 @@ class JavaCodeGenerator {
       sb.writeln('    }');
       sb.writeln('');
 
-      String mode = mech.defaultControlModes[motor.name] ?? 'DUTYCYCLE';
-      if (mode == 'MAGIC_MOTION') {
-        mode = 'MOTION';
-      }
-      if (mode != 'DUTYCYCLE') {
+      List<String> modes = mech.settersControlModes[motor.name] ?? ['DUTYCYCLE'];
+
+      bool hasPositionGetter = false;
+      for (var mode in modes) {
+        if (mode == 'MAGIC_MOTION') {
+          mode = 'MOTION';
+        }
         String modeCap = capitalize(mode.toLowerCase());
 
         sb.writeln('    public void set${motorNameCap}${modeCap}(double ${mode.toLowerCase()}) {');
@@ -1235,10 +1238,70 @@ class JavaCodeGenerator {
         sb.writeln('');
 
         if (mode == 'POSITION_VOLTAGE' || mode == 'MOTION') {
+          if (hasPositionGetter) {
+            continue;
+          }
           modeCap = 'Position';
+          hasPositionGetter = true;
         }
         sb.writeln('    public double get${motorNameCap}${modeCap}() {');
         sb.writeln('        return getMotor(${mConst}_NAME).getCurrent${modeCap}();');
+        sb.writeln('    }');
+        sb.writeln('');
+      }
+    }
+
+    for (var sensor in mech.sensors) {
+      if (sensor.name.isEmpty) continue;
+      String sNameCap = capitalize(sensor.name);
+      String sBaseName = '${sensor.name} ${sensor.sensorType}';
+      String sConst = constantize(sBaseName);
+      String sClass = sensor.sensorType.replaceAll(' ', '');
+
+      if (sensor.sensorType == 'Limit Switch') {
+        sb.writeln('    public boolean get${sNameCap}() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).get();');
+        sb.writeln('    }');
+        sb.writeln('');
+      } else if (sensor.sensorType == 'Pigeon') {
+        sb.writeln('    public double get${sNameCap}Yaw() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).getCurrentYaw();');
+        sb.writeln('    }');
+        sb.writeln('');
+        sb.writeln('    public double get${sNameCap}Pitch() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).getCurrentPitch();');
+        sb.writeln('    }');
+        sb.writeln('');
+        sb.writeln('    public double get${sNameCap}Roll() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).getCurrentRoll();');
+        sb.writeln('    }');
+        sb.writeln('');
+      } else if (sensor.sensorType == 'Ultra Sonic Sensor') {
+        sb.writeln('    public double get${sNameCap}Distance() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).get();');
+        sb.writeln('    }');
+        sb.writeln('');
+      } else if (sensor.sensorType == 'Optical Sensor') {
+        sb.writeln('    public double get${sNameCap}Voltage() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).get();');
+        sb.writeln('    }');
+        sb.writeln('');
+      } else if (sensor.sensorType == 'Color Sensor') {
+        sb.writeln('    public edu.wpi.first.wpilibj.util.Color get${sNameCap}Color() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).get();');
+        sb.writeln('    }');
+        sb.writeln('');
+        sb.writeln('    public String get${sNameCap}MatchedColor() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).getMatchedColorName();');
+        sb.writeln('    }');
+        sb.writeln('');
+        sb.writeln('    public int get${sNameCap}Proximity() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).getProximity();');
+        sb.writeln('    }');
+        sb.writeln('');
+      } else {
+        sb.writeln('    public double get${sNameCap}() {');
+        sb.writeln('        return (($sClass) getSensor(${sConst}_NAME)).get();');
         sb.writeln('    }');
         sb.writeln('');
       }
@@ -1270,10 +1333,10 @@ class JavaCodeGenerator {
           String sConst = constantize(sBaseName);
           sb.writeln('        return ((${sensor.sensorType.replaceAll(' ', '')}) getSensor(${sConst}_NAME)).get();');
         } else {
-          sb.writeln('        return false; // Sensor not found');
+          sb.writeln('        return false; // TODO Sensor not found');
         }
       } else {
-        sb.writeln('        return false; // Unimplemented method \'$methodName()\'");');
+        sb.writeln('        return false; // TODO Unimplemented method \'$methodName()\'");');
       }
       sb.writeln('    }');
       sb.writeln('');
