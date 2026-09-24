@@ -1223,10 +1223,14 @@ class JavaCodeGenerator {
       sb.writeln('    }');
       sb.writeln('');
 
-      List<String> modes = mech.settersControlModes[motor.name] ?? ['DUTYCYCLE'];
+      List<String> modes = mech.settersControlModes[motor.name] ?? ['VOLTAGE'];
 
       bool hasPositionGetter = false;
       for (var mode in modes) {
+        if (mode == 'DUTYCYCLE') {
+          continue;
+        }
+
         if (mode == 'MAGIC_MOTION') {
           mode = 'MOTION';
         }
