@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
@@ -325,8 +327,14 @@ class AppTextField extends StatefulWidget {
 }
 
 class _AppTextFieldState extends State<AppTextField> {
+  static final RegExp _allowedCharRegex = RegExp(r'[A-Za-z0-9_ ]');
+  static final RegExp _digitRegex = RegExp(r'[0-9]');
+
   late final TextEditingController _controller;
   String _previewText = '';
+
+  Timer? _errorTimer;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -346,8 +354,17 @@ class _AppTextFieldState extends State<AppTextField> {
     }
   }
 
+  void _showError(String message) {
+    _errorTimer?.cancel();
+    setState(() => _errorMessage = message);
+    _errorTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _errorMessage = null);
+    });
+  }
+
   @override
   void dispose() {
+    _errorTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -357,6 +374,7 @@ class _AppTextFieldState extends State<AppTextField> {
     final effectiveDecoration = (widget.decoration ?? const InputDecoration()).copyWith(
       helperText: _previewText.isNotEmpty ? 'Generated Name: $_previewText' : null,
       helperStyle: const TextStyle(color: Colors.blueAccent),
+      errorText: _errorMessage,
     );
 
     return TextField(
@@ -365,10 +383,23 @@ class _AppTextFieldState extends State<AppTextField> {
       decoration: effectiveDecoration,
       onChanged: widget.onChanged,
       inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r'[A-Za-z0-9_ ]'),
-        ),
-        FirstCharNotDigitFormatter(),
+        TextInputFormatter.withFunction((oldValue, newValue) {
+          final text = newValue.text;
+
+          for (final ch in text.split('')) {
+            if (!_allowedCharRegex.hasMatch(ch)) {
+              _showError('Character "$ch" is not allowed. Use English letters, digits, underscore and spaces only.');
+              return oldValue;
+            }
+          }
+
+          if (text.isNotEmpty && _digitRegex.hasMatch(text[0])) {
+            _showError('Name cannot start with a digit.');
+            return oldValue;
+          }
+
+          return newValue;
+        }),
       ],
     );
   }
@@ -403,8 +434,14 @@ class AppTextFormField extends StatefulWidget {
 }
 
 class _AppTextFormFieldState extends State<AppTextFormField> {
+  static final RegExp _allowedCharRegex = RegExp(r'[A-Za-z0-9_ ]');
+  static final RegExp _digitRegex = RegExp(r'[0-9]');
+
   late final TextEditingController _controller;
   String _previewText = '';
+
+  Timer? _errorTimer;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -425,8 +462,17 @@ class _AppTextFormFieldState extends State<AppTextFormField> {
     }
   }
 
+  void _showError(String message) {
+    _errorTimer?.cancel();
+    setState(() => _errorMessage = message);
+    _errorTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _errorMessage = null);
+    });
+  }
+
   @override
   void dispose() {
+    _errorTimer?.cancel();
     if (widget.controller == null) {
       _controller.dispose();
     }
@@ -438,6 +484,7 @@ class _AppTextFormFieldState extends State<AppTextFormField> {
     final effectiveDecoration = (widget.decoration ?? const InputDecoration()).copyWith(
       helperText: _previewText.isNotEmpty ? 'Generated Name: $_previewText' : null,
       helperStyle: const TextStyle(color: Colors.blueAccent),
+      errorText: _errorMessage,
     );
 
     return TextFormField(
@@ -449,10 +496,23 @@ class _AppTextFormFieldState extends State<AppTextFormField> {
       obscureText: widget.obscureText,
       maxLines: widget.maxLines,
       inputFormatters: [
-        FilteringTextInputFormatter.allow(
-          RegExp(r'[A-Za-z0-9_ ]'),
-        ),
-        FirstCharNotDigitFormatter(),
+        TextInputFormatter.withFunction((oldValue, newValue) {
+          final text = newValue.text;
+
+          for (final ch in text.split('')) {
+            if (!_allowedCharRegex.hasMatch(ch)) {
+              _showError('Character "$ch" is not allowed. Use English letters, digits, underscore and spaces only.');
+              return oldValue;
+            }
+          }
+
+          if (text.isNotEmpty && _digitRegex.hasMatch(text[0])) {
+            _showError('Name cannot start with a digit.');
+            return oldValue;
+          }
+
+          return newValue;
+        }),
       ],
     );
   }
@@ -484,32 +544,57 @@ class DoubleTextFormField extends StatefulWidget {
   State<DoubleTextFormField> createState() => _DoubleTextFormFieldState();
 }
 
+class _Suggestion {
+  const _Suggestion(this.insertText, {this.cursorOffsetFromEnd = 0});
+  final String insertText;
+  final int cursorOffsetFromEnd;
+}
+
+class _WordMatch {
+  _WordMatch(this.start, this.end, this.suggestions);
+  final int start;
+  final int end;
+  final List<_Suggestion> suggestions;
+}
+
 class _DoubleTextFormFieldState extends State<DoubleTextFormField> {
-  final FocusNode _focusNode = FocusNode();
+  static const List<_Suggestion> _knownTokens = [
+    _Suggestion('Math.PI'),
+    _Suggestion('Math.E'),
+    _Suggestion('Math.toRadians()', cursorOffsetFromEnd: 1),
+    _Suggestion('Double.POSITIVE_INFINITY'),
+    _Suggestion('Double.NEGATIVE_INFINITY'),
+  ];
+
+  static final RegExp _wordCharRegex = RegExp(r'[A-Za-z_.]');
+  static final RegExp _allowedCharRegex = RegExp(r'[0-9A-Za-z_.+\-*/() ]');
+
+  static final RegExp _equationRegex = RegExp(
+    r'^\s*(?:[(]*\s*[+\-]?\s*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*[+*/\-]\s*[(]*\s*[+\-]?\s*)*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*|M(?:a(?:t(?:h(?:\.(?:PI?|E|t(?:o(?:R(?:a(?:d(?:i(?:a(?:n(?:s(?:\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))?\s*[)]*)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|D(?:o(?:u(?:b(?:l(?:e(?:\.(?:P(?:O(?:S(?:I(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|N(?:E(?:G(?:A(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)\s*$',
+  );
+
+  late final FocusNode _focusNode;
   late final TextEditingController _controller;
+
+  Timer? _errorTimer;
+  String? _errorMessage;
+  _WordMatch? _currentWord;
+  int _highlightedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? TextEditingController(text: widget.initialValue);
-    
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) {
-        final currentText = _controller.text;
-        final partialMathRegex = RegExp(r'M(?:a(?:t(?:h(?:\.P?)?)?)?)?$');
-        
-        if (partialMathRegex.hasMatch(currentText)) {
-          _controller.text = currentText.replaceAll(partialMathRegex, 'Math.PI');
-          if (widget.onChanged != null) {
-            widget.onChanged!(_controller.text);
-          }
-        }
-      }
-    });
+    _controller.addListener(_handleControllerChange);
+    _focusNode = FocusNode();
+    _focusNode.addListener(_handleFocusChange);
   }
 
   @override
   void dispose() {
+    _errorTimer?.cancel();
+    _controller.removeListener(_handleControllerChange);
+    _focusNode.removeListener(_handleFocusChange);
     _focusNode.dispose();
     if (widget.controller == null) {
       _controller.dispose();
@@ -517,31 +602,234 @@ class _DoubleTextFormFieldState extends State<DoubleTextFormField> {
     super.dispose();
   }
 
+  void _handleFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _errorTimer?.cancel();
+      setState(() {
+        _currentWord = null;
+        _errorMessage = null;
+      });
+    }
+  }
+
+  void _handleControllerChange() {
+    setState(() {
+      _currentWord = _findCurrentWord();
+      _highlightedIndex = 0;
+    });
+  }
+
+  _WordMatch? _findCurrentWord() {
+    if (!_focusNode.hasFocus) return null;
+    final selection = _controller.selection;
+    if (!selection.isValid || !selection.isCollapsed) return null;
+
+    final cursor = selection.start;
+    final text = _controller.text;
+    var start = cursor;
+    while (start > 0 && _wordCharRegex.hasMatch(text[start - 1])) {
+      start--;
+    }
+    final word = text.substring(start, cursor);
+    if (word.isEmpty) return null;
+
+    final matches = _knownTokens
+        .where((s) => s.insertText.startsWith(word) && s.insertText != word)
+        .toList();
+    if (matches.isEmpty) return null;
+    return _WordMatch(start, cursor, matches);
+  }
+
+  Map<ShortcutActivator, VoidCallback> _buildShortcutBindings() {
+    final word = _currentWord;
+    if (word == null || word.suggestions.isEmpty) {
+      return const <ShortcutActivator, VoidCallback>{};
+    }
+    return <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.arrowDown): _moveHighlightDown,
+      const SingleActivator(LogicalKeyboardKey.arrowUp): _moveHighlightUp,
+      const SingleActivator(LogicalKeyboardKey.tab): _acceptHighlightedSuggestion,
+      const SingleActivator(LogicalKeyboardKey.enter): _acceptHighlightedSuggestion,
+      const SingleActivator(LogicalKeyboardKey.escape): _dismissSuggestions,
+    };
+  }
+
+  void _moveHighlightDown() {
+    final count = _currentWord?.suggestions.length ?? 0;
+    if (count == 0) return;
+    setState(() => _highlightedIndex = (_highlightedIndex + 1) % count);
+  }
+
+  void _moveHighlightUp() {
+    final count = _currentWord?.suggestions.length ?? 0;
+    if (count == 0) return;
+    setState(() => _highlightedIndex = (_highlightedIndex - 1 + count) % count);
+  }
+
+  void _acceptHighlightedSuggestion() {
+    final word = _currentWord;
+    if (word == null || word.suggestions.isEmpty) return;
+    _applySuggestion(word.suggestions[_highlightedIndex]);
+  }
+
+  void _dismissSuggestions() {
+    setState(() => _currentWord = null);
+  }
+
+  void _applySuggestion(_Suggestion suggestion) {
+    final word = _currentWord;
+    if (word == null) return;
+
+    final text = _controller.text;
+    final newText = text.replaceRange(word.start, word.end, suggestion.insertText);
+    final newCursor = word.start + suggestion.insertText.length - suggestion.cursorOffsetFromEnd;
+
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newCursor),
+    );
+    widget.onChanged?.call(newText);
+
+    setState(() => _currentWord = null);
+
+    if (!_focusNode.hasFocus) {
+      _focusNode.requestFocus();
+    }
+  }
+
+  void _showError(String message) {
+    _errorTimer?.cancel();
+    setState(() => _errorMessage = message);
+    _errorTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _errorMessage = null);
+    });
+  }
+
+  static String _diffInserted(String oldText, String newText) {
+    var prefix = 0;
+    final minLen = oldText.length < newText.length ? oldText.length : newText.length;
+    while (prefix < minLen && oldText[prefix] == newText[prefix]) {
+      prefix++;
+    }
+    var oldEnd = oldText.length, newEnd = newText.length;
+    while (oldEnd > prefix && newEnd > prefix && oldText[oldEnd - 1] == newText[newEnd - 1]) {
+      oldEnd--;
+      newEnd--;
+    }
+    return newText.substring(prefix, newEnd);
+  }
+
+  String _explainRejection(String oldText, String attemptedText) {
+    final inserted = _diffInserted(oldText, attemptedText);
+
+    if (inserted.isEmpty) {
+      return 'This deletion would leave the expression invalid.';
+    }
+
+    for (final ch in inserted.split('')) {
+      if (!_allowedCharRegex.hasMatch(ch)) {
+        return 'Character "$ch" is not allowed in an equation.';
+      }
+    }
+
+    var i = 0;
+    while (i < oldText.length && i < attemptedText.length && oldText[i] == attemptedText[i]) {
+      i++;
+    }
+    var wordStart = i;
+    while (wordStart > 0 && _wordCharRegex.hasMatch(oldText[wordStart - 1])) {
+      wordStart--;
+    }
+    final wordSoFar = oldText.substring(wordStart, i);
+    if (wordSoFar.isNotEmpty) {
+      for (final s in _knownTokens) {
+        if (s.insertText.startsWith(wordSoFar) &&
+            s.insertText.length > wordSoFar.length &&
+            !s.insertText.startsWith(wordSoFar + inserted)) {
+          return 'You typed "$wordSoFar" - did you mean "${s.insertText}"?';
+        }
+      }
+    }
+
+    return 'Adding "$inserted" here would make the expression invalid.';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: _controller,
-      focusNode: _focusNode,
-      decoration: widget.decoration,
-      validator: widget.validator,
-      onChanged: widget.onChanged,
-      keyboardType: widget.keyboardType,
-      obscureText: widget.obscureText,
-      maxLines: widget.maxLines,
-      inputFormatters: [
-        TextInputFormatter.withFunction((oldValue, newValue) {
-          final text = newValue.text;
+    final theme = Theme.of(context);
+    final word = _currentWord;
 
-          final regex = RegExp(
-            r'^\s*(?:[(]*\s*[+\-]?\s*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*[+*/\-]\s*[(]*\s*[+\-]?\s*)*(?:(?:\d+(?:\.\d*)?|Math\.(?:PI|E)|Math\.toRadians\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))\s*[)]*)\s*[)]*\s*|M(?:a(?:t(?:h(?:\.(?:PI?|E|t(?:o(?:R(?:a(?:d(?:i(?:a(?:n(?:s(?:\s*[(]*\s*[+\-]?\s*(?:\d+(?:\.\d*)?|Math\.(?:PI|E))?\s*[)]*)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|D(?:o(?:u(?:b(?:l(?:e(?:\.(?:P(?:O(?:S(?:I(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?|N(?:E(?:G(?:A(?:T(?:I(?:V(?:E(?:_(?:I(?:N(?:F(?:I(?:N(?:I(?:T(?:Y?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)\s*$'
-          );
-
-          if (text.isEmpty || regex.hasMatch(text)) {
-            return newValue;
-          }
-
-          return oldValue;
-        }),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CallbackShortcuts(
+          bindings: _buildShortcutBindings(),
+          child: TextFormField(
+            controller: _controller,
+            focusNode: _focusNode,
+            decoration: widget.decoration,
+            validator: widget.validator,
+            onChanged: widget.onChanged,
+            keyboardType: widget.keyboardType,
+            obscureText: widget.obscureText,
+            maxLines: widget.maxLines,
+            inputFormatters: [
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final text = newValue.text;
+                if (text.isEmpty || _equationRegex.hasMatch(text)) {
+                  return newValue;
+                }
+                _showError(_explainRejection(oldValue.text, text));
+                return oldValue;
+              }),
+            ],
+          ),
+        ),
+        if (_errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+            child: Text(
+              _errorMessage!,
+              style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+            ),
+          ),
+        if (word != null && word.suggestions.isNotEmpty)
+          TextFieldTapRegion(
+            child: Container(
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: theme.dividerColor),
+                boxShadow: const [
+                  BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x33000000)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(word.suggestions.length, (index) {
+                  final suggestion = word.suggestions[index];
+                  final isHighlighted = index == _highlightedIndex;
+                  return InkWell(
+                    canRequestFocus: false,
+                    onTap: () => _applySuggestion(suggestion),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      color: isHighlighted ? theme.colorScheme.primary.withOpacity(0.12) : null,
+                      child: Text(
+                        suggestion.insertText,
+                        style: TextStyle(
+                          fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
       ],
     );
   }
