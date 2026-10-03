@@ -219,9 +219,13 @@ class ChassisModel {
   String canBus = 'CANIvore'; bool todoCanBus = false;
   String pigeonCanBus = 'CANIvore'; bool todoPigeonCanBus = false;
   
+  String? steerGearRatioConstant;
   String steerGearRatio = '287.0 / 11.0'; bool todoSteerGearRatio = false;
+  String? driveGearRatioConstant;
   String driveGearRatio = '6.03'; bool todoDriveGearRatio = false;
+  String? wheelDiameterConstant;
   String wheelDiameter = '4 * 0.0254'; bool todoWheelDiameter = false;
+  String? metersFrom360DegsConstant;
   String metersFrom360Degs = '0.2'; bool todoMetersFrom360Degs = false;
 
   String maxDriveVelocity = '5'; bool todoMaxDriveVelocity = false;
@@ -835,6 +839,107 @@ class _DoubleTextFormFieldState extends State<DoubleTextFormField> {
   }
 }
 
+class ConstantPreset {
+  const ConstantPreset({required this.label, required this.value, required this.javaCode});
+ 
+  final String label;
+  final String value;
+  final String javaCode;
+}
+ 
+class Mk5nPresets {
+  static const driveGearRatio = [
+    ConstantPreset(label: 'Mk5n R1', value: '7.03', javaCode: 'Mk5nConstants.R1.driveGearRatio'),
+    ConstantPreset(label: 'Mk5n R2', value: '6.03', javaCode: 'Mk5nConstants.R2.driveGearRatio'),
+    ConstantPreset(label: 'Mk5n R3', value: '5.72', javaCode: 'Mk5nConstants.R3.driveGearRatio'),
+  ];
+ 
+  static const metersFrom360Degs = [
+    ConstantPreset(label: 'Mk5n R1', value: '0.16', javaCode: 'Mk5nConstants.R1.metersFrom360Degs'),
+    ConstantPreset(label: 'Mk5n R2', value: '0.19', javaCode: 'Mk5nConstants.R2.metersFrom360Degs'),
+    ConstantPreset(label: 'Mk5n R3', value: '0.2', javaCode: 'Mk5nConstants.R3.metersFrom360Degs'),
+  ];
+ 
+  static const steerGearRatio = [
+    ConstantPreset(label: 'Mk5n', value: '287.0 / 11.0', javaCode: 'Mk5nConstants.STEER_GEAR_RATIO'),
+  ];
+ 
+  static const wheelDiameter = [
+    ConstantPreset(label: 'Mk5n', value: '4 * 0.0254', javaCode: 'Mk5nConstants.WHEEL_DIAMETER'),
+  ];
+}
+ 
+class PresetNumberField extends StatelessWidget {
+  const PresetNumberField({
+    super.key,
+    required this.label,
+    required this.presets,
+    required this.number,
+    required this.constant,
+    required this.onChanged,
+  });
+ 
+  final String label;
+  final List<ConstantPreset> presets;
+  final String number;
+  final String? constant;
+  final void Function(String number, String? constant) onChanged;
+ 
+  ConstantPreset? get _selected {
+    for (final preset in presets) {
+      if (preset.javaCode == constant) return preset;
+    }
+    return null;
+  }
+ 
+  @override
+  Widget build(BuildContext context) {
+    final selected = _selected;
+ 
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            border: const OutlineInputBorder(),
+            helperText: selected == null ? null : 'Generated Code: ${selected.javaCode}',
+            helperStyle: const TextStyle(color: Colors.blueAccent),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<ConstantPreset?>(
+              value: selected,
+              isDense: true,
+              isExpanded: true,
+              items: [
+                const DropdownMenuItem<ConstantPreset?>(value: null, child: Text('Custom number')),
+                for (final preset in presets)
+                  DropdownMenuItem<ConstantPreset?>(
+                    value: preset,
+                    child: Text('${preset.label} (${preset.value})'),
+                  ),
+              ],
+              onChanged: (preset) => onChanged(preset?.value ?? number, preset?.javaCode),
+            ),
+          ),
+        ),
+        if (selected == null) ...[
+          const SizedBox(height: 8),
+          DoubleTextFormField(
+            initialValue: number,
+            decoration: const InputDecoration(labelText: 'Number', border: OutlineInputBorder()),
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              if (value.isNotEmpty) onChanged(value, null);
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 // ==========================================
 // MAIN APP
 // ==========================================
@@ -1038,7 +1143,9 @@ class JavaCodeGenerator {
     
     files['$mechNameLower/subsystems/$mechNameCap.java'] = _generateSubsystem(mech, mechNameCap, mechNameLower);
     
-    files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
+    if (mech.useStates) {
+      files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
+    }
 
     for (var calibration in mech.calibrationCommands) {
       if (calibration.motorName == 'No Motors Available') continue;
@@ -1430,7 +1537,7 @@ class JavaCodeGenerator {
     
     String parentClass = mech.useStates ? 'StateBaseMechanism' : 'BaseMechanism';
     
-    sb.writeln('public class $mechNameCap extends $parentClass<${mechNameCap}States> {');
+    sb.writeln('public class $mechNameCap extends $parentClass${mech.useStates ? '<${mechNameCap}States>' : ''} {');
     sb.writeln('    private static $mechNameCap instance;');
     sb.writeln('');
     sb.writeln('    private $mechNameCap() {');
@@ -1814,6 +1921,12 @@ class JavaCodeGenerator {
     sb.writeln('import edu.wpi.first.math.geometry.Translation2d;');
     sb.writeln('import frc.demacia.utils.motors.TalonFXConfig;');
     sb.writeln('import frc.demacia.utils.chassis.ChassisConfig;');
+    if (chassis.steerGearRatioConstant != null ||
+        chassis.driveGearRatioConstant != null ||
+        chassis.wheelDiameterConstant != null ||
+        chassis.metersFrom360DegsConstant != null) {
+      sb.writeln('import frc.demacia.utils.chassis.Mk5nConstants;');
+    }
     sb.writeln('import frc.demacia.utils.chassis.SwerveModuleConfig;');
     sb.writeln('import frc.demacia.utils.motors.BaseMotorConfig.Canbus;');
     sb.writeln('import frc.demacia.utils.sensors.CancoderConfig;');
@@ -1826,10 +1939,10 @@ class JavaCodeGenerator {
     sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0}; ${_todo(chassis.todoPigeonId)}');
     sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus}; ${_todo(chassis.todoCanBus)}');
     sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus}; ${_todo(chassis.todoPigeonCanBus)}');
-    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio}; ${_todo(chassis.todoSteerGearRatio)}');
-    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio}; ${_todo(chassis.todoDriveGearRatio)}');
-    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter}; ${_todo(chassis.todoWheelDiameter)}');
-    sb.writeln('  public static final double METERS_FROM_360_DEGS = ${chassis.metersFrom360Degs}; ${_todo(chassis.todoMetersFrom360Degs)}');
+    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatioConstant ?? chassis.steerGearRatio}; ${_todo(chassis.todoSteerGearRatio)}');
+    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatioConstant ?? chassis.driveGearRatio}; ${_todo(chassis.todoDriveGearRatio)}');
+    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameterConstant ?? chassis.wheelDiameter}; ${_todo(chassis.todoWheelDiameter)}');
+    sb.writeln('  public static final double METERS_FROM_360_DEGS = ${chassis.metersFrom360DegsConstant ?? chassis.metersFrom360Degs}; ${_todo(chassis.todoMetersFrom360Degs)}');
     sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; ${_todo(chassis.todoMaxDriveVelocity)}');
     sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; ${_todo(chassis.todoRampTimeSteer)}');
     sb.writeln('');

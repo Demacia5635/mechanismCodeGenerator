@@ -89,8 +89,10 @@ class _HomePageState extends State<HomePage> {
       allFiles['chassis/${className}ChassisConstants.java'] = JavaCodeGenerator.generateChassisConstants(_chassis);
     }
 
-    String className = 'VisionConstants';
-    allFiles['vision/${className}.java'] = JavaCodeGenerator.generateVisionConstants(_vision);
+    if (!_robotContainer.useAnotherVision && _robotContainer.makeRobotContainer) {
+      String className = 'VisionConstants';
+      allFiles['vision/$className.java'] = JavaCodeGenerator.generateVisionConstants(_vision);
+    }
 
     if (_robotContainer.makeRobotContainer) {
       String className = "RobotContainer";
@@ -223,80 +225,88 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 16),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildTodoFlag(
                                     isTodo: _chassis.todoSteerGearRatio,
                                     onChanged: (val) => setState(() => _chassis.todoSteerGearRatio = val),
                                   ),
                                   Expanded(
-                                    child: DoubleTextFormField(
-                                      initialValue: _chassis.steerGearRatio.toString(),
-                                      decoration: const InputDecoration(labelText: 'Steer Gear Ratio', border: OutlineInputBorder()),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (val) {
-                                        _chassis.steerGearRatio = val;
-                                      },
+                                    child: PresetNumberField(
+                                      label: 'Steer Gear Ratio',
+                                      presets: Mk5nPresets.steerGearRatio,
+                                      number: _chassis.steerGearRatio,
+                                      constant: _chassis.steerGearRatioConstant,
+                                      onChanged: (number, constant) => setState(() {
+                                        _chassis.steerGearRatio = number;
+                                        _chassis.steerGearRatioConstant = constant;
+                                      }),
                                     ),
                                   ),
-                                ]
+                                ],
                               ),
                               const SizedBox(height: 16),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildTodoFlag(
                                     isTodo: _chassis.todoDriveGearRatio,
                                     onChanged: (val) => setState(() => _chassis.todoDriveGearRatio = val),
                                   ),
                                   Expanded(
-                                    child: DoubleTextFormField(
-                                      initialValue: _chassis.driveGearRatio.toString(),
-                                      decoration: const InputDecoration(labelText: 'Drive Gear Ratio', border: OutlineInputBorder()),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (val) {
-                                        _chassis.driveGearRatio = val;
-                                      },
+                                    child: PresetNumberField(
+                                      label: 'Drive Gear Ratio',
+                                      presets: Mk5nPresets.driveGearRatio,
+                                      number: _chassis.driveGearRatio,
+                                      constant: _chassis.driveGearRatioConstant,
+                                      onChanged: (number, constant) => setState(() {
+                                        _chassis.driveGearRatio = number;
+                                        _chassis.driveGearRatioConstant = constant;
+                                      }),
                                     ),
                                   ),
-                                ]
+                                ],
                               ),
                               const SizedBox(height: 16),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildTodoFlag(
                                     isTodo: _chassis.todoWheelDiameter,
                                     onChanged: (val) => setState(() => _chassis.todoWheelDiameter = val),
                                   ),
                                   Expanded(
-                                    child: DoubleTextFormField(
-                                      initialValue: _chassis.wheelDiameter.toString(),
-                                      decoration: const InputDecoration(labelText: 'Wheel Diameter', border: OutlineInputBorder()),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (val) {
-                                        if (val.isNotEmpty) {
-                                          _chassis.wheelDiameter = val;
-                                        }
-                                      },
+                                    child: PresetNumberField(
+                                      label: 'Wheel Diameter',
+                                      presets: Mk5nPresets.wheelDiameter,
+                                      number: _chassis.wheelDiameter,
+                                      constant: _chassis.wheelDiameterConstant,
+                                      onChanged: (number, constant) => setState(() {
+                                        _chassis.wheelDiameter = number;
+                                        _chassis.wheelDiameterConstant = constant;
+                                      }),
                                     ),
                                   ),
-                                ]
+                                ],
                               ),
                               const SizedBox(height: 16),
                               Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   _buildTodoFlag(
                                     isTodo: _chassis.todoMetersFrom360Degs,
                                     onChanged: (val) => setState(() => _chassis.todoMetersFrom360Degs = val),
                                   ),
                                   Expanded(
-                                    child: DoubleTextFormField(
-                                      initialValue: _chassis.metersFrom360Degs.toString(),
-                                      decoration: const InputDecoration(labelText: 'Meters from 360 Degrees', border: OutlineInputBorder()),
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (val) {
-                                        if (val.isNotEmpty) {
-                                          _chassis.metersFrom360Degs = val;
-                                        }
-                                      },
+                                    child: PresetNumberField(
+                                      label: 'Meters from 360 Degrees',
+                                      presets: Mk5nPresets.metersFrom360Degs,
+                                      number: _chassis.metersFrom360Degs,
+                                      constant: _chassis.metersFrom360DegsConstant,
+                                      onChanged: (number, constant) => setState(() {
+                                        _chassis.metersFrom360Degs = number;
+                                        _chassis.metersFrom360DegsConstant = constant;
+                                      }),
                                     ),
                                   ),
                                 ],
