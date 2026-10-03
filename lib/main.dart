@@ -128,15 +128,15 @@ class PowerCommandConfig {
 
 class LimitConfig {
   String motorName = '';
-  String minLimit = '0.0';
+  String minLimit = 'Math.toRadians(0)';
   bool todoMinLimit = false;
-  String maxLimit = '0.0';
+  String maxLimit = 'Math.toRadians(0)';
   bool todoMaxLimit = false;
 }
 
 class IsReadyConfig {
   String motorName = '';
-  String allowedError = '0.0';
+  String allowedError = 'Math.toRadians(0)';
   bool todoAllowedError = false;
 }
 
@@ -144,7 +144,7 @@ class AutoCalibrationConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
   String sensorName = '';
-  String autoResetPos = '0.0';
+  String autoResetPos = 'Math.toRadians(0)';
   bool todoResetPos = false;
 }
 
@@ -154,7 +154,7 @@ class CalibrationCmdConfig {
   String sensorName = '';
   String power = '0.0';
   bool todoPower = false;
-  String resetPos = '0.0';
+  String resetPos = 'Math.toRadians(0)';
   bool todoResetPos = false;
   bool useStartDelay = false;
   String startPower = '0.0';
@@ -283,8 +283,8 @@ class VisionSourceModel {
   String offsetYaw = '0.0';
   bool todoOffsets = false;
 
-  String stdX = '0.3';
-  String stdY = '0.3';
+  String stdX = '0.03';
+  String stdY = '0.03';
   String stdZ = '0.0';
   bool todoStd = false;
 }
@@ -1936,43 +1936,43 @@ class JavaCodeGenerator {
     sb.writeln('');
     sb.writeln('  public static final String NAME = "$constName";');
     sb.writeln('');
-    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0}; ${_todo(chassis.todoPigeonId)}');
-    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus}; ${_todo(chassis.todoCanBus)}');
-    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus}; ${_todo(chassis.todoPigeonCanBus)}');
-    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatioConstant ?? chassis.steerGearRatio}; ${_todo(chassis.todoSteerGearRatio)}');
-    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatioConstant ?? chassis.driveGearRatio}; ${_todo(chassis.todoDriveGearRatio)}');
-    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameterConstant ?? chassis.wheelDiameter}; ${_todo(chassis.todoWheelDiameter)}');
-    sb.writeln('  public static final double METERS_FROM_360_DEGS = ${chassis.metersFrom360DegsConstant ?? chassis.metersFrom360Degs}; ${_todo(chassis.todoMetersFrom360Degs)}');
-    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; ${_todo(chassis.todoMaxDriveVelocity)}');
-    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; ${_todo(chassis.todoRampTimeSteer)}');
+    sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0};${_todo(chassis.todoPigeonId)}');
+    sb.writeln('  public static final Canbus CAN_BUS = Canbus.${chassis.canBus};${_todo(chassis.todoCanBus)}');
+    sb.writeln('  public static final Canbus PIGEON_CAN_BUS = Canbus.${chassis.pigeonCanBus};${_todo(chassis.todoPigeonCanBus)}');
+    sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatioConstant ?? chassis.steerGearRatio};${_todo(chassis.todoSteerGearRatio)}');
+    sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatioConstant ?? chassis.driveGearRatio};${_todo(chassis.todoDriveGearRatio)}');
+    sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameterConstant ?? chassis.wheelDiameter};${_todo(chassis.todoWheelDiameter)}');
+    sb.writeln('  public static final double METERS_FROM_360_DEGS = ${chassis.metersFrom360DegsConstant ?? chassis.metersFrom360Degs};${_todo(chassis.todoMetersFrom360Degs)}');
+    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity};${_todo(chassis.todoMaxDriveVelocity)}');
+    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer};${_todo(chassis.todoRampTimeSteer)}');
     sb.writeln('');
-    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP}; ${_todo(chassis.todoSteerPIDFF)}');
-    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI}; ${_todo(chassis.todoSteerPIDFF)}');
-    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD}; ${_todo(chassis.todoSteerPIDFF)}');
-    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS}; ${_todo(chassis.todoSteerPIDFF)}');
-    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV}; ${_todo(chassis.todoSteerPIDFF)}');
-    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA}; ${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KP = ${chassis.steerKP};${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KI = ${chassis.steerKI};${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KD = ${chassis.steerKD};${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KS = ${chassis.steerKS};${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KV = ${chassis.steerKV};${_todo(chassis.todoSteerPIDFF)}');
+    sb.writeln('  public static final double STEER_KA = ${chassis.steerKA};${_todo(chassis.todoSteerPIDFF)}');
     sb.writeln('');
-    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA}; ${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KP = ${chassis.driveKP};${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KI = ${chassis.driveKI};${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KD = ${chassis.driveKD};${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS};${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV};${_todo(chassis.todoDrivePIDFF)}');
+    sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA};${_todo(chassis.todoDrivePIDFF)}');
     sb.writeln('');
     sb.writeln('  public static final Translation2d[] MODULE_LOCATIONS = {');
-    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT ${_todo(chassis.todoLocations)}');
-    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}), //FRONT RIGHT ${_todo(chassis.todoLocations)}');
-    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}), //BACK LEFT ${_todo(chassis.todoLocations)}');
-    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY}), //BACK RIGHT ${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.frX}, ${chassis.frY}), //FRONT RIGHT${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.blX}, ${chassis.blY}), //BACK LEFT${_todo(chassis.todoLocations)}');
+    sb.writeln('    new Translation2d(${chassis.brX}, ${chassis.brY}), //BACK RIGHT${_todo(chassis.todoLocations)}');
     sb.writeln('  };');
     sb.writeln('');
     sb.writeln('  public static final SwerveModuleConfig[] modules = swerveModules(');
     sb.writeln('      new double[] {');
-    sb.writeln('        ${chassis.flOffset}, //FRONT LEFT ${_todo(chassis.todoOffsets)}');
-    sb.writeln('        ${chassis.frOffset}, //FRONT RIGHT ${_todo(chassis.todoOffsets)}');
-    sb.writeln('        ${chassis.blOffset}, //BACK LEFT ${_todo(chassis.todoOffsets)}');
-    sb.writeln('        ${chassis.brOffset} //BACK RIGHT ${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.flOffset}, //FRONT LEFT${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.frOffset}, //FRONT RIGHT${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.blOffset}, //BACK LEFT${_todo(chassis.todoOffsets)}');
+    sb.writeln('        ${chassis.brOffset} //BACK RIGHT${_todo(chassis.todoOffsets)}');
     sb.writeln('      });');
     sb.writeln('');
     sb.writeln('  public static final PigeonConfig PIGEON_CONFIG = new PigeonConfig(NAME + " pigeon", PIGEON_ID, PIGEON_CAN_BUS);');
@@ -1982,7 +1982,7 @@ class JavaCodeGenerator {
     sb.writeln('      modules,');
     sb.writeln('      PIGEON_CONFIG);');
     sb.writeln('');
-    sb.writeln('  public static final Matrix<N3, N1> STATE_STD = new Matrix<>(new SimpleMatrix(new double[] { 0.3, 0.3, 0 }));');
+    sb.writeln('  public static final Matrix<N3, N1> STATE_STD = new Matrix<>(new SimpleMatrix(new double[] { 0.05, 0.05, 0 }));');
     sb.writeln('');
     sb.writeln('  public static final SwerveModuleConfig[] swerveModules(double[] offsets) {');
     sb.writeln('    SwerveModuleConfig[] ans = new SwerveModuleConfig[4];');
@@ -2077,9 +2077,9 @@ class JavaCodeGenerator {
 
       sb.writeln('    public static final String ${constName}_NAME = "${source.name}";');
       sb.writeln('    public static final Transform3d ${constName}_OFFSET = new Transform3d(');
-      sb.writeln('        new Translation3d(${source.offsetX}, ${source.offsetY}, ${source.offsetZ}), ${_todo(source.todoOffsets)}');
-      sb.writeln('        new Rotation3d(${source.offsetRoll}, ${source.offsetPitch}, ${source.offsetYaw})); ${_todo(source.todoOffsets)}');
-      sb.writeln('    public static final Matrix<N3, N1> ${constName}_STD = new Matrix<>(new SimpleMatrix(new double[] { ${source.stdX}, ${source.stdY}, ${source.stdZ} })); ${_todo(source.todoStd)}');
+      sb.writeln('        new Translation3d(${source.offsetX}, ${source.offsetY}, ${source.offsetZ}),${_todo(source.todoOffsets)}');
+      sb.writeln('        new Rotation3d(${source.offsetRoll}, ${source.offsetPitch}, ${source.offsetYaw}));${_todo(source.todoOffsets)}');
+      sb.writeln('    public static final Matrix<N3, N1> ${constName}_STD = new Matrix<>(new SimpleMatrix(new double[] { ${source.stdX}, ${source.stdY}, ${source.stdZ} }));${_todo(source.todoStd)}');
       sb.writeln('    public static final ${type}Config ${constName}_CONFIG = new ${type}Config(${constName}_NAME, ${constName}_OFFSET, ${constName}_STD);');
       sb.writeln('');
     }
