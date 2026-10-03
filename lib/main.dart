@@ -73,7 +73,8 @@ class MotorModel {
   // Grouped Stall Detection
   String highCurrentThreshold = '0.0'; 
   String lowVelocityThreshold = '0.0';
-  String secondsThreshold = '0.0';
+  String stallConfirmSeconds = '0.0';
+  String stuckDurationSeconds = '0.0';
   bool useStallDetection = false;
   bool todoStallDetection = false;
 }
@@ -133,6 +134,12 @@ class LimitConfig {
   bool todoMaxLimit = false;
 }
 
+class IsReadyConfig {
+  String motorName = '';
+  String allowedError = '0.0';
+  bool todoAllowedError = false;
+}
+
 class AutoCalibrationConfig {
   String motorName = '';
   String atResetPosMethod = 'other';
@@ -170,6 +177,7 @@ class MechanismModel {
   
   List<PowerCommandConfig> powerCommands = [];
   List<LimitConfig> limits = [];
+  List<IsReadyConfig> isReadies = [];
   List<AutoCalibrationConfig> autoCalibrations = [];
   List<CalibrationCmdConfig> calibrationCommands = [];
 
@@ -178,8 +186,6 @@ class MechanismModel {
   String statesType = "fixed states";
   List<StateConfig> states = [];
 
-  // --- Default Command ---
-  bool useDefaultCommand = false;
   Map<String, String> defaultControlModes = {};
   Map<String, List<String>> settersControlModes = {};
 
@@ -216,6 +222,10 @@ class ChassisModel {
   String steerGearRatio = '287.0 / 11.0'; bool todoSteerGearRatio = false;
   String driveGearRatio = '6.03'; bool todoDriveGearRatio = false;
   String wheelDiameter = '4 * 0.0254'; bool todoWheelDiameter = false;
+  String metersFrom360Degs = '0.2'; bool todoMetersFrom360Degs = false;
+
+  String maxDriveVelocity = '5'; bool todoMaxDriveVelocity = false;
+  String rampTimeSteer = '0.25'; bool todoRampTimeSteer = false;
 
   bool todoSteerPIDFF = false;
   String steerKP = '0';
@@ -232,14 +242,6 @@ class ChassisModel {
   String driveKS = '0';
   String driveKV = '0';
   String driveKA = '0';
-
-  bool todoMotionMagic = false;
-  String motionMagicVel = '100';
-  String motionMagicAccel = '50';
-  String motionMagicJerk = '1000';
-
-  String maxDriveVelocity = '5'; bool todoMaxDriveVelocity = false;
-  String rampTimeSteer = '0.25'; bool todoRampTimeSteer = false;
 
   // Locations (X, Y)
   String flX = '0';
@@ -261,8 +263,6 @@ class ChassisModel {
 }
 
 class VisionModel {
-  bool makeVision = false;
-
   List<VisionSourceModel> sources = [];  
 }
 
@@ -279,8 +279,8 @@ class VisionSourceModel {
   String offsetYaw = '0.0';
   bool todoOffsets = false;
 
-  String stdX = '0.0';
-  String stdY = '0.0';
+  String stdX = '0.3';
+  String stdY = '0.3';
   String stdZ = '0.0';
   bool todoStd = false;
 }
@@ -289,8 +289,8 @@ class RobotContainerModel {
   bool makeRobotContainer = false;
   String controllerType = 'PS5';
   bool useAnotherChassis = false;
-  bool useAnotherVision = false;
   String anotherChassisClassName = '';
+  bool useAnotherVision = false;
 }
 
 class FirstCharNotDigitFormatter extends TextInputFormatter {
@@ -1009,6 +1009,10 @@ class JavaCodeGenerator {
         if (limit != null) {
           limit.motorName += ' motor';
         }
+        var isReady = mech.isReadies.where((l) => l.motorName == name).firstOrNull;
+        if (isReady != null) {
+          isReady.motorName += ' motor';
+        }
         var powerCommand = mech.powerCommands.where((p) => p.motorName == name).firstOrNull;
         if (powerCommand != null) {
           powerCommand.motorName += ' motor';
@@ -1034,9 +1038,7 @@ class JavaCodeGenerator {
     
     files['$mechNameLower/subsystems/$mechNameCap.java'] = _generateSubsystem(mech, mechNameCap, mechNameLower);
     
-    if (mech.useStates && mech.useDefaultCommand) {
-      files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
-    }
+    files['$mechNameLower/commands/${mechNameCap}Command.java'] = _generateDefaultCommand(mech, mechNameCap, mechNameLower);
 
     for (var calibration in mech.calibrationCommands) {
       if (calibration.motorName == 'No Motors Available') continue;
@@ -1139,7 +1141,8 @@ class JavaCodeGenerator {
       if (motor.useStallDetection) {
         sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};${_todo(motor.todoStallDetection)}');
         sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};${_todo(motor.todoStallDetection)}');
-        sb.writeln('        public static final double ${mConst}_SECONDS_THRESHOLD = ${motor.secondsThreshold};${_todo(motor.todoStallDetection)}');
+        sb.writeln('        public static final double ${mConst}_STALL_CONFIRM_SECONDS = ${motor.stallConfirmSeconds};${_todo(motor.todoStallDetection)}');
+        sb.writeln('        public static final double ${mConst}_STUCK_DURATION_SECONDS = ${motor.stuckDurationSeconds};${_todo(motor.todoStallDetection)}');
       }
 
       sb.writeln('');
@@ -1173,7 +1176,7 @@ class JavaCodeGenerator {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
       }
       if (motor.useStallDetection) {
-         sb.write('\n            //does not exist yet\n            ');
+         sb.write('\n            .withDetectStall(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_STALL_CONFIRM_SECONDS, ${mConst}_STUCK_DURATION_SECONDS)');
       }
       sb.writeln(';');
       sb.writeln('');
@@ -1183,6 +1186,11 @@ class JavaCodeGenerator {
       if (limit != null) {
         sb.writeln('        public static final double ${mConst}_MIN_LIMIT = ${limit.minLimit};${_todo(limit.todoMinLimit)}');
         sb.writeln('        public static final double ${mConst}_MAX_LIMIT = ${limit.maxLimit};${_todo(limit.todoMaxLimit)}');
+      }
+
+      var isReady = mech.isReadies.where((l) => l.motorName == motor.name).firstOrNull;
+      if (isReady != null) {
+        sb.writeln('        public static final double ${mConst}_ALLOWED_ERROR = ${isReady.allowedError};${_todo(isReady.todoAllowedError)}');
       }
 
       var cmdCal = mech.calibrationCommands.where((c) => c.motorName == motor.name).firstOrNull;
@@ -1422,7 +1430,7 @@ class JavaCodeGenerator {
     
     String parentClass = mech.useStates ? 'StateBaseMechanism' : 'BaseMechanism';
     
-    sb.writeln('public class $mechNameCap extends $parentClass {');
+    sb.writeln('public class $mechNameCap extends $parentClass<${mechNameCap}States> {');
     sb.writeln('    private static $mechNameCap instance;');
     sb.writeln('');
     sb.writeln('    private $mechNameCap() {');
@@ -1443,11 +1451,8 @@ class JavaCodeGenerator {
         sb.writeln('            new ${sensor.sensorType.replaceAll(' ', '')}(${sConst}_CONFIG),');
       }
     }
-    sb.writeln('        }' + (mech.useStates ? ', ' : ');'));
+    sb.writeln('        });');
 
-    if (mech.useStates) {
-      sb.writeln('        ${mechNameCap}States.class);');
-    }
     sb.writeln('');
     
     for (var limit in mech.limits) {
@@ -1506,17 +1511,12 @@ class JavaCodeGenerator {
     for (var motor in mech.motors) {
       String mConst = constantize(motor.name);
       String motorNameCap = capitalize(motor.name);
-      sb.writeln('    public void set${motorNameCap}Power(double power) {');
-      sb.writeln('        setPower(${mConst}_NAME, power);');
-      sb.writeln('    }');
-      sb.writeln('');
-
-      List<String> modes = mech.settersControlModes[motor.name] ?? ['VOLTAGE'];
+      List<String> modes = mech.settersControlModes[motor.name] ?? ['DUTYCYCLE'];
 
       bool hasPositionGetter = false;
       for (var mode in modes) {
         if (mode == 'DUTYCYCLE') {
-          continue;
+          mode = 'POWER';
         }
 
         if (mode == 'MAGIC_MOTION') {
@@ -1529,6 +1529,9 @@ class JavaCodeGenerator {
         sb.writeln('    }');
         sb.writeln('');
 
+        if (mode == 'POWER') {
+          continue;
+        }
         if (mode == 'POSITION_VOLTAGE' || mode == 'MOTION') {
           if (hasPositionGetter) {
             continue;
@@ -1542,6 +1545,56 @@ class JavaCodeGenerator {
         sb.writeln('');
       }
     }
+
+    String isMechReady = '';
+    for (var isReady in mech.isReadies) {
+      if (isReady.motorName == 'No Motors Available') continue;
+      String mConst = constantize(isReady.motorName);
+      String motorNameCap = capitalize(isReady.motorName);
+      sb.writeln('    public boolean is${motorNameCap}Ready() {');
+      sb.writeln('        return isReady(${mConst}_NAME, ${mConst}_ALLOWED_ERROR);');
+      sb.writeln('    }');
+      if (isMechReady.isNotEmpty) {
+        isMechReady += ' && ';
+      }
+      isMechReady += 'is${motorNameCap}Ready()';
+    }
+
+    if (isMechReady.isNotEmpty) {
+      sb.writeln('    public boolean is${mechNameCap}Ready() {');
+      sb.writeln('        return $isMechReady;');
+      sb.writeln('    }');
+      sb.writeln('');
+    }
+
+    for (var motor in mech.motors) {
+      if (motor.useStallDetection) {
+        String mConst = constantize(motor.name);
+        String motorNameCap = capitalize(motor.name);
+        sb.writeln('    public boolean isStuck${motorNameCap}() {');
+        sb.writeln('        return getMotor(${mConst}_NAME).isStuck();');
+        sb.writeln('    }');
+      }
+    }
+    
+    if (mech.useStates && mech.statesType == 'dynamic states') {
+      sb.writeln('    public double[] get${mechNameCap}Values() {');
+      sb.writeln('        switch ((${mechNameCap}States) state) {');
+      for (var state in mech.states) {
+        String sName = constantize(state.name.isEmpty ? 'STATE' : state.name);
+        sb.writeln('            case $sName:');
+        sb.writeln('                break;');
+      }
+      sb.writeln('            default:');
+      sb.writeln('                break;');
+      sb.writeln('        }');
+      sb.writeln('        ');
+      sb.writeln('        return new double[] {}; // TODO: Unimplemented method \'get${mechNameCap}Values\'');
+      sb.writeln('    }');
+      sb.writeln('');
+    }
+
+    
 
     for (var sensor in mech.sensors) {
       if (sensor.name.isEmpty) continue;
@@ -1598,32 +1651,13 @@ class JavaCodeGenerator {
         sb.writeln('');
       }
     }
-    
-    if (mech.useStates && mech.statesType == 'dynamic states') {
-      sb.writeln('    public double[] get${mechNameCap}Values() {');
-      sb.writeln('        switch ((${mechNameCap}States) state) {');
-      for (var state in mech.states) {
-        String sName = constantize(state.name.isEmpty ? 'STATE' : state.name);
-        sb.writeln('            case $sName:');
-        sb.writeln('                break;');
-      }
-      sb.writeln('            default:');
-      sb.writeln('                break;');
-      sb.writeln('        }');
-      sb.writeln('        ');
-      sb.writeln('        return new double[] {}; // TODO: Unimplemented method \'get${mechNameCap}Values\'');
-      sb.writeln('    }');
-      sb.writeln('');
-    }
 
     void writeConditionMethod(String methodName, String methodType, String sensorName) {
       sb.writeln('    public boolean $methodName() {');
       if (methodType == 'when sensor true') {
         var sensor = mech.sensors.where((s) => s.name == sensorName).firstOrNull;
         if (sensor != null) {
-          String sBaseName = '${sensor.name} ${sensor.sensorType}';
-          String sConst = constantize(sBaseName);
-          sb.writeln('        return ((${sensor.sensorType.replaceAll(' ', '')}) getSensor(${sConst}_NAME)).get();');
+          sb.writeln('        return get${capitalize(sensor.name)}();');
         } else {
           sb.writeln('        return false; // TODO Sensor not found');
         }
@@ -1664,11 +1698,17 @@ class JavaCodeGenerator {
     StringBuffer sb = StringBuffer();
     sb.writeln('package frc.robot.$mechNameLower.commands;');
     sb.writeln('');
+    sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.*;');
+    for (var motor in mech.motors) {
+      String mClass = '${capitalize(motor.name)}Constants';
+      sb.writeln('import static frc.robot.$mechNameLower.${mechNameCap}Constants.$mClass.*;');
+    }
     sb.writeln('import frc.demacia.utils.mechanisms.DefaultCommand;');
     sb.writeln('import frc.demacia.utils.motors.MotorInterface.ControlMode;');
     sb.writeln('import frc.robot.$mechNameLower.subsystems.$mechNameCap;');
     sb.writeln('');
-    sb.writeln('public class ${mechNameCap}Command extends DefaultCommand {');
+    sb.writeln('public class ${mechNameCap}Command extends DefaultCommand<${mechNameCap}States> {');
+    sb.writeln('    private final $mechNameCap ${mechNameCap.toLowerCase()} = $mechNameCap.getInstance();');
     sb.writeln('    ');
     sb.writeln('    public ${mechNameCap}Command() {');
     sb.writeln('        super($mechNameCap.getInstance(), new ControlMode[] {');
@@ -1682,6 +1722,47 @@ class JavaCodeGenerator {
     }
     
     sb.writeln('        });');
+    sb.writeln('    }');
+    sb.writeln('');
+    sb.writeln('    // Called every time the scheduler runs while the command is scheduled.');
+    sb.writeln('    @Override');
+    sb.writeln('    public void execute() {');
+    if (mech.useStates && mech.states.isNotEmpty) {
+      List<String> stateNames = [];
+      for (int i = 0; i < mech.states.length; i++) {
+        var state = mech.states[i];
+        stateNames.add(constantize(state.name.isEmpty ? 'STATE_${i + 1}' : state.name));
+      }
+      String allStates = stateNames.join(', ');
+
+      sb.writeln('        switch (${mechNameCap.toLowerCase()}.getState()) {');
+      sb.writeln('            case $allStates:');
+      
+      for (var motor in mech.motors) {
+        String motorNameCap = capitalize(motor.name);
+        String mConst = constantize(motor.name);
+        
+        String mode = mech.defaultControlModes[motor.name] ?? 'DUTYCYCLE';
+        String modeCap;
+        
+        if (mode == 'DUTYCYCLE') {
+          mode = 'POWER';
+        }
+        if (mode == 'MAGIC_MOTION') {
+          mode = 'MOTION';
+        }
+        modeCap = capitalize(mode.toLowerCase());
+        
+        sb.writeln('                ${mechNameCap.toLowerCase()}.set$motorNameCap$modeCap(${mechNameCap.toLowerCase()}.getValue(${mConst}_NAME));');
+      }
+      
+      sb.writeln('                break;');
+      sb.writeln('            default:');
+      sb.writeln('                super.execute();');
+      sb.writeln('        }');
+    } else {
+      sb.writeln('        super.execute();');
+    }
     sb.writeln('    }');
     sb.writeln('}');
     return sb.toString();
@@ -1726,6 +1807,10 @@ class JavaCodeGenerator {
 
     sb.writeln('package frc.robot.chassis;');
     sb.writeln('');
+    sb.writeln('import org.ejml.simple.SimpleMatrix;');
+    sb.writeln('import edu.wpi.first.math.Matrix;');
+    sb.writeln('import edu.wpi.first.math.numbers.N1;');
+    sb.writeln('import edu.wpi.first.math.numbers.N3;');
     sb.writeln('import edu.wpi.first.math.geometry.Translation2d;');
     sb.writeln('import frc.demacia.utils.motors.TalonFXConfig;');
     sb.writeln('import frc.demacia.utils.chassis.ChassisConfig;');
@@ -1744,6 +1829,9 @@ class JavaCodeGenerator {
     sb.writeln('  public static final double STEER_GEAR_RATIO = ${chassis.steerGearRatio}; ${_todo(chassis.todoSteerGearRatio)}');
     sb.writeln('  public static final double DRIVE_GEAR_RATIO = ${chassis.driveGearRatio}; ${_todo(chassis.todoDriveGearRatio)}');
     sb.writeln('  public static final double WHEEL_DIAMETER = ${chassis.wheelDiameter}; ${_todo(chassis.todoWheelDiameter)}');
+    sb.writeln('  public static final double METERS_FROM_360_DEGS = ${chassis.metersFrom360Degs}; ${_todo(chassis.todoMetersFrom360Degs)}');
+    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; ${_todo(chassis.todoMaxDriveVelocity)}');
+    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; ${_todo(chassis.todoRampTimeSteer)}');
     sb.writeln('');
     sb.writeln('  public static final double STEER_KP = ${chassis.steerKP}; ${_todo(chassis.todoSteerPIDFF)}');
     sb.writeln('  public static final double STEER_KI = ${chassis.steerKI}; ${_todo(chassis.todoSteerPIDFF)}');
@@ -1758,13 +1846,6 @@ class JavaCodeGenerator {
     sb.writeln('  public static final double DRIVE_KS = ${chassis.driveKS}; ${_todo(chassis.todoDrivePIDFF)}');
     sb.writeln('  public static final double DRIVE_KV = ${chassis.driveKV}; ${_todo(chassis.todoDrivePIDFF)}');
     sb.writeln('  public static final double DRIVE_KA = ${chassis.driveKA}; ${_todo(chassis.todoDrivePIDFF)}');
-    sb.writeln('');
-    sb.writeln('  public static final double STEER_MOTION_MAGIC_VEL = ${chassis.motionMagicVel}; ${_todo(chassis.todoMotionMagic)}');
-    sb.writeln('  public static final double STEER_MOTION_MAGIC_ACCEL = ${chassis.motionMagicAccel}; ${_todo(chassis.todoMotionMagic)}');
-    sb.writeln('  public static final double STEER_MOTION_MAGIC_JERK = ${chassis.motionMagicJerk}; ${_todo(chassis.todoMotionMagic)}');
-    sb.writeln('');
-    sb.writeln('  public static final double MAX_DRIVE_VELOCITY = ${chassis.maxDriveVelocity}; ${_todo(chassis.todoMaxDriveVelocity)}');
-    sb.writeln('  public static final double RAMP_TIME_STEER = ${chassis.rampTimeSteer}; ${_todo(chassis.todoRampTimeSteer)}');
     sb.writeln('');
     sb.writeln('  public static final Translation2d[] MODULE_LOCATIONS = {');
     sb.writeln('    new Translation2d(${chassis.flX}, ${chassis.flY}), //FRONT LEFT ${_todo(chassis.todoLocations)}');
@@ -1788,6 +1869,8 @@ class JavaCodeGenerator {
     sb.writeln('      modules,');
     sb.writeln('      PIGEON_CONFIG);');
     sb.writeln('');
+    sb.writeln('  public static final Matrix<N3, N1> STATE_STD = new Matrix<>(new SimpleMatrix(new double[] { 0.3, 0.3, 0 }));');
+    sb.writeln('');
     sb.writeln('  public static final SwerveModuleConfig[] swerveModules(double[] offsets) {');
     sb.writeln('    SwerveModuleConfig[] ans = new SwerveModuleConfig[4];');
     sb.writeln('    for (int i = 0; i < 4; i++) {');
@@ -1803,7 +1886,6 @@ class JavaCodeGenerator {
     sb.writeln('          name,');
     sb.writeln('          new TalonFXConfig(name + " Steer", i * 3 + 2, CAN_BUS)');
     sb.writeln('              .withPID(STEER_KP, STEER_KI, STEER_KD, STEER_KS, STEER_KV, STEER_KA, 0, 0, 0)');
-    sb.writeln('              .withMotionParam(STEER_MOTION_MAGIC_VEL, STEER_MOTION_MAGIC_ACCEL, STEER_MOTION_MAGIC_JERK)');
     sb.writeln('              .withBrake(true)');
     sb.writeln('              .withInvert(true)');
     sb.writeln('              .withRadiansMotor(STEER_GEAR_RATIO)');
@@ -1812,9 +1894,11 @@ class JavaCodeGenerator {
     sb.writeln('              .withPID(DRIVE_KP, DRIVE_KI, DRIVE_KD, DRIVE_KS, DRIVE_KV, DRIVE_KA, 0, 0, 0)');
     sb.writeln('              .withBrake(true)');
     sb.writeln('              .withMeterMotor(DRIVE_GEAR_RATIO, WHEEL_DIAMETER),');
-    sb.writeln('          new CancoderConfig(name + " Cancoder", i * 3 + 3, CAN_BUS))');
+    sb.writeln('          new CancoderConfig(name + " Cancoder", i * 3 + 3, CAN_BUS)');
+    sb.writeln('            .withInvert(false))');
     sb.writeln('          .withPosion(MODULE_LOCATIONS[i])');
-    sb.writeln('          .withSteerOffset(offsets[i]);');
+    sb.writeln('          .withSteerOffset(offsets[i])');
+    sb.writeln('          .withMetersFrom360Degs(METERS_FROM_360_DEGS);');
     sb.writeln('    }');
     sb.writeln('    return ans;');
     sb.writeln('  }');
@@ -1903,12 +1987,15 @@ class JavaCodeGenerator {
     StringBuffer sb = StringBuffer();
 
     sb.writeln('package frc.robot;');
+    sb.writeln('');
     sb.writeln('import edu.wpi.first.util.sendable.Sendable;');
     sb.writeln('import edu.wpi.first.util.sendable.SendableBuilder;');
     sb.writeln('import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;');
     sb.writeln('import frc.demacia.utils.controller.CommandController;');
     sb.writeln('import frc.demacia.utils.controller.CommandController.ControllerType;');
     sb.writeln('import edu.wpi.first.wpilibj2.command.Command;');
+    sb.writeln('import frc.demacia.RobotPose.RobotPose;');
+    sb.writeln('import frc.robot.vision.VisionConstants;');
     if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('import frc.demacia.utils.chassis.Chassis;');
       sb.writeln('import frc.demacia.utils.chassis.DriveCommand;');
@@ -1916,7 +2003,7 @@ class JavaCodeGenerator {
     }
     for (var mech in mechanisms) {
       sb.writeln('import frc.robot.${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.subsystems.${capitalize(mech.name)};');
-      if (mech.useStates && mech.useDefaultCommand) {
+      if (mech.useStates) {
         sb.writeln('import frc.robot.${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.commands.${capitalize(mech.name)}Command;');
       }
     }
@@ -1954,6 +2041,10 @@ class JavaCodeGenerator {
       sb.writeln('    ${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)} = ${capitalize(mech.name)}.getInstance();');
     }
     sb.writeln('');
+    sb.writeln('    RobotPose.initialize(');
+    sb.writeln('      ${capitalize(chassis.name)}ChassisConstants.STATE_STD, ');
+    sb.writeln('      VisionConstants.visionConfig);');
+    sb.writeln('');
     sb.writeln('    configureBindings();');
     sb.writeln('    setDefaultCommands();');
     sb.writeln('    setController();');
@@ -1968,7 +2059,7 @@ class JavaCodeGenerator {
       sb.writeln('    Chassis.getInstance().setDefaultCommand(driveCommand);');
     }
     for (var mech in mechanisms) {
-      if (mech.useStates && mech.useDefaultCommand) {
+      if (mech.useStates) {
         sb.writeln('    ${capitalize(mech.name)[0].toLowerCase() + capitalize(mech.name).substring(1)}.setDefaultCommand(new ${capitalize(mech.name)}Command());');
       }
     }

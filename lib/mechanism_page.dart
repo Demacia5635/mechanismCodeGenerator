@@ -21,16 +21,30 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
     final newMotor = MotorModel();
     setState(() {
       widget.mechanism.motors.add(newMotor);
+      widget.mechanism.settersControlModes[newMotor.name] = ['DUTYCYCLE'];
+      widget.mechanism.defaultControlModes[newMotor.name] = 'DUTYCYCLE';
     });
     _openMotorEditor(newMotor);
   }
 
   void _openMotorEditor(MotorModel motor) async {
+    String oldName = motor.name;
+    
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => MotorEditorPage(motor: motor)),
     );
-    setState(() {});
+    
+    setState(() {
+      if (oldName != motor.name) {
+        if (widget.mechanism.settersControlModes.containsKey(oldName)) {
+          widget.mechanism.settersControlModes[motor.name] = widget.mechanism.settersControlModes.remove(oldName)!;
+        }
+        if (widget.mechanism.defaultControlModes.containsKey(oldName)) {
+          widget.mechanism.defaultControlModes[motor.name] = widget.mechanism.defaultControlModes.remove(oldName)!;
+        }
+      }
+    });
   }
 
   void _addNewSensor() {
@@ -112,6 +126,8 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                 icon: const Icon(Icons.delete, color: Colors.redAccent),
                 onPressed: () {
                   setState(() {
+                    widget.mechanism.settersControlModes.remove(motor.name);
+                    widget.mechanism.defaultControlModes.remove(motor.name);
                     widget.mechanism.motors.remove(motor);
                   });
                 },
@@ -348,6 +364,54 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
                 TextButton.icon(
                   onPressed: () => setState(() => widget.mechanism.limits.add(LimitConfig()..motorName = motorNames.first)), 
                   icon: const Icon(Icons.add), label: const Text('Add Limit')
+                ),
+              ],
+            ),
+          ),
+
+          // --- IS READY ---
+          Card(
+            color: Colors.grey[900],
+            child: ExpansionTile(
+              title: const Text('Is Ready', style: TextStyle(fontWeight: FontWeight.bold)),
+              maintainState: true,
+              children: [
+                ...widget.mechanism.isReadies.map((isReadyConfig) => Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          value: motorNames.contains(isReadyConfig.motorName) ? isReadyConfig.motorName : motorNames.first,
+                          decoration: const InputDecoration(labelText: 'Motor', border: OutlineInputBorder(), isDense: true),
+                          items: motorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+                          onChanged: (val) => setState(() => isReadyConfig.motorName = val!),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildTodoFlag(
+                        isTodo: isReadyConfig.todoAllowedError,
+                        onChanged: (val) => setState(() => isReadyConfig.todoAllowedError = val),
+                      ),
+                      Expanded(
+                        child: DoubleTextFormField(
+                          initialValue: isReadyConfig.allowedError,
+                          decoration: const InputDecoration(labelText: 'Allowed Error', border: OutlineInputBorder(), isDense: true),
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) => isReadyConfig.allowedError = val,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.redAccent),
+                        onPressed: () => setState(() => widget.mechanism.isReadies.remove(isReadyConfig)),
+                      ),
+                    ],
+                  ),
+                )),
+                TextButton.icon(
+                  onPressed: () => setState(() => widget.mechanism.isReadies.add(IsReadyConfig()..motorName = motorNames.first)), 
+                  icon: const Icon(Icons.add), label: const Text('Add Is Ready Config')
                 ),
               ],
             ),
@@ -599,76 +663,6 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
             ),
           ),
 
-          // --- DEFAULT COMMAND ---
-          Card(
-            color: Colors.grey[900],
-            child: Column(
-              children: [
-                if (widget.mechanism.useStates) ... {
-                  SwitchListTile(
-                    title: const Text('Generate Default Command', style: TextStyle(fontWeight: FontWeight.bold)),
-                    value: widget.mechanism.useDefaultCommand,
-                    onChanged: (val) => setState(() => widget.mechanism.useDefaultCommand = val),
-                  ),
-                  if (widget.mechanism.useDefaultCommand)
-                    ExpansionTile(
-                      title: const Text('Default Command Configuration'),
-                      initiallyExpanded: true,
-                      maintainState: true,
-                      children: [
-                        if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
-                          ...motorNames.map((mName) {
-                            widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text(mName)),
-                                  Expanded(
-                                    flex: 2,
-                                    child: DropdownButtonFormField<String>(
-                                      value: widget.mechanism.defaultControlModes[mName],
-                                      decoration: const InputDecoration(
-                                        labelText: 'Control Mode', 
-                                        border: OutlineInputBorder(), 
-                                        isDense: true
-                                      ),
-                                      items: [
-                                        'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
-                                        'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
-                                      ].map((mode) => DropdownMenuItem(value: mode, child: Text(mode))).toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          setState(() {
-                                            widget.mechanism.defaultControlModes[mName] = val;
-                                            
-                                            if (val != 'DUTYCYCLE') {
-                                              var list = widget.mechanism.settersControlModes.putIfAbsent(mName, () => []);
-                                              if (!list.contains(val)) {
-                                                list.add(val);
-                                              }
-                                            }
-                                          });
-                                        }
-                                      }
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
-                          const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Text('Add motors to assign control modes.', style: TextStyle(color: Colors.grey)),
-                          )
-                      ],
-                    ),
-                }
-              ],
-            ),
-          ),
-
           // --- SETTERS AND GETTERS CONFIGURATION ---
           Card(
             color: Colors.grey[900],
@@ -677,102 +671,126 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
               initiallyExpanded: true,
               maintainState: true,
               children: [
-                ...widget.mechanism.settersControlModes.entries.expand((entry) {
-                  String mName = entry.key;
-                  List<String> modes = entry.value;
-                  
-                  return modes.asMap().entries.map((modeEntry) {
-                    int modeIndex = modeEntry.key;
-                    String mode = modeEntry.value;
-                    
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: motorNames.contains(mName) ? mName : motorNames.first,
-                              decoration: const InputDecoration(
-                                labelText: 'Motor', 
-                                border: OutlineInputBorder(), 
-                                isDense: true
-                              ),
-                              items: motorNames.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
-                              onChanged: (newMotor) {
-                                if (newMotor != null && newMotor != mName) {
-                                  setState(() {
-                                    widget.mechanism.settersControlModes[mName]!.removeAt(modeIndex);
-                                    if (widget.mechanism.settersControlModes[mName]!.isEmpty) {
-                                      widget.mechanism.settersControlModes.remove(mName);
-                                    }
-                                    widget.mechanism.settersControlModes.putIfAbsent(newMotor, () => []).add(mode);
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: DropdownButtonFormField<String>(
-                              value: mode,
-                              decoration: const InputDecoration(
-                                labelText: 'Control Mode', 
-                                border: OutlineInputBorder(), 
-                                isDense: true
-                              ),
-                              items: [
-                                'VOLTAGE', 'VELOCITY', 
-                                'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
-                              ].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                              onChanged: (newMode) {
-                                if (newMode != null) {
-                                  setState(() {
-                                    widget.mechanism.settersControlModes[mName]![modeIndex] = newMode;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.redAccent),
-                            onPressed: () {
-                              setState(() {
-                                widget.mechanism.settersControlModes[mName]!.removeAt(modeIndex);
-                                if (widget.mechanism.settersControlModes[mName]!.isEmpty) {
-                                  widget.mechanism.settersControlModes.remove(mName);
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  });
-                }),
-                
-                if (motorNames.isNotEmpty && motorNames.first != 'No Motors Available')
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          String defaultMotor = motorNames.first;
-                          widget.mechanism.settersControlModes
-                              .putIfAbsent(defaultMotor, () => [])
-                              .add('VOLTAGE');
-                        });
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Setter & Getter'),
-                    ),
-                  ),
-
                 if (motorNames.isEmpty || motorNames.first == 'No Motors Available')
                   const Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Text('Add motors to assign setters.', style: TextStyle(color: Colors.grey)),
                   )
+                else
+                  ...motorNames.map((mName) {
+                    List<String> allModes = [
+                      'DUTYCYCLE', 'VOLTAGE', 'VELOCITY', 
+                      'POSITION_VOLTAGE', 'MAGIC_MOTION', 'ANGLE'
+                    ];
+                    List<String> currentModes = widget.mechanism.settersControlModes[mName] ?? [];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16.0, top: 12.0, bottom: 4.0),
+                          child: Text(
+                            mName, 
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 16, 
+                              color: Colors.blueAccent
+                            )
+                          ),
+                        ),
+                        
+                        ...currentModes.asMap().entries.map((modeEntry) {
+                          int modeIndex = modeEntry.key;
+                          String mode = modeEntry.value;
+                          List<String> availableDropdownModes = allModes.where((m) => !currentModes.contains(m) || m == mode).toList();
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: mode,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Control Mode', 
+                                      border: OutlineInputBorder(), 
+                                      isDense: true
+                                    ),
+                                    items: availableDropdownModes.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                                    onChanged: (newMode) {
+                                      if (newMode != null) {
+                                        setState(() {
+                                          if (widget.mechanism.defaultControlModes[mName] == mode) {
+                                            widget.mechanism.defaultControlModes[mName] = newMode;
+                                          }
+                                          widget.mechanism.settersControlModes[mName]![modeIndex] = newMode;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('Default', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                    Radio<String>(
+                                      value: mode,
+                                      groupValue: widget.mechanism.defaultControlModes[mName] ?? 'DUTYCYCLE',
+                                      activeColor: Colors.blueAccent,
+                                      onChanged: (String? selectedMode) {
+                                        if (selectedMode != null) {
+                                          setState(() {
+                                            widget.mechanism.defaultControlModes[mName] = selectedMode;
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () {
+                                    setState(() {
+                                      widget.mechanism.settersControlModes[mName]!.removeAt(modeIndex);
+                                      
+                                      if (widget.mechanism.settersControlModes[mName]!.isEmpty) {
+                                        widget.mechanism.settersControlModes.remove(mName);
+                                        widget.mechanism.defaultControlModes[mName] = 'DUTYCYCLE';
+                                      } else if (widget.mechanism.defaultControlModes[mName] == mode) {
+                                        widget.mechanism.defaultControlModes[mName] = widget.mechanism.settersControlModes[mName]!.first;
+                                      }
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        
+                        if (currentModes.length < allModes.length)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16.0, bottom: 12.0),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  String nextMode = allModes.firstWhere((m) => !currentModes.contains(m));
+                                  widget.mechanism.settersControlModes.putIfAbsent(mName, () => []).add(nextMode);
+                                  widget.mechanism.defaultControlModes.putIfAbsent(mName, () => 'DUTYCYCLE');
+                                  
+                                  if (widget.mechanism.settersControlModes[mName]!.length == 1) {
+                                    widget.mechanism.defaultControlModes[mName] = nextMode;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.add),
+                              label: Text('Add Setter for $mName'),
+                            ),
+                          ),
+                        const Divider(color: Colors.grey),
+                      ],
+                    );
+                  }),
               ],
             ),
           ),

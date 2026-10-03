@@ -367,8 +367,13 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                 markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
               ),
               _buildGroupedTextField(
-                label: 'Seconds Threshold', initialValue: widget.motor.secondsThreshold, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.secondsThreshold = v,
+                label: 'stall Confirm Seconds', initialValue: widget.motor.stallConfirmSeconds, defaultValue: 0.0,
+                onChanged: (v) => widget.motor.stallConfirmSeconds = v,
+                markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
+              ),
+              _buildGroupedTextField(
+                label: 'Stuck Duration Seconds', initialValue: widget.motor.stuckDurationSeconds, defaultValue: 0.0,
+                onChanged: (v) => widget.motor.stuckDurationSeconds = v,
                 markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
               ),
             ],
