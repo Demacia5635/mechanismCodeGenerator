@@ -1834,6 +1834,13 @@ class JavaCodeGenerator {
     sb.writeln('    // Called every time the scheduler runs while the command is scheduled.');
     sb.writeln('    @Override');
     sb.writeln('    public void execute() {');
+    sb.writeln('        //if state is testing or idle then getState() is null and DefaultCommand execute will handle it');
+    sb.writeln('        if (${mechNameCap.toLowerCase()}.getState() == null) {');
+    sb.writeln('            super.execute();');
+    sb.writeln('            return;');
+    sb.writeln('        }');
+    sb.writeln('');
+
     if (mech.useStates && mech.states.isNotEmpty) {
       List<String> stateNames = [];
       for (int i = 0; i < mech.states.length; i++) {
@@ -1865,7 +1872,7 @@ class JavaCodeGenerator {
       
       sb.writeln('                break;');
       sb.writeln('            default:');
-      sb.writeln('                super.execute();');
+      sb.writeln('                break;');
       sb.writeln('        }');
     } else {
       sb.writeln('        super.execute();');
