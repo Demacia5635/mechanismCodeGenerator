@@ -375,6 +375,10 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
                 label: 'Stuck Duration Seconds', initialValue: widget.motor.stuckDurationSeconds, defaultValue: 0.0,
                 onChanged: (v) => widget.motor.stuckDurationSeconds = v,
                 markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
+                leading: Checkbox(
+                  value: widget.motor.useStuckDurationSeconds,
+                  onChanged: (val) => setState(() {widget.motor.useStallDetection = true; widget.motor.useStuckDurationSeconds = val ?? false;}),
+                ),
               ),
             ],
           ),
@@ -425,24 +429,32 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
     required String? initialValue,
     required double defaultValue,
     required Function(String) onChanged,
-    VoidCallback? markAsUsed, 
+    VoidCallback? markAsUsed,
+    Widget? leading,
   }) {
     return SizedBox(
       width: (MediaQuery.of(context).size.width / 2) - 32,
-      child: DoubleTextFormField(
-        initialValue: initialValue ?? defaultValue.toString(),
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          isDense: true,
-        ),
-        keyboardType: TextInputType.text, 
-        onChanged: (val) {
-          onChanged(val.isEmpty ? defaultValue.toString() : val);
-          if (markAsUsed != null) {
-            markAsUsed();
-          }
-        },
+      child: Row(
+        children: [
+          if (leading != null) leading,
+          Expanded(
+            child: DoubleTextFormField(
+              initialValue: initialValue ?? defaultValue.toString(),
+              decoration: InputDecoration(
+                labelText: label,
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+              keyboardType: TextInputType.text,
+              onChanged: (val) {
+                onChanged(val.isEmpty ? defaultValue.toString() : val);
+                if (markAsUsed != null) {
+                  markAsUsed();
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

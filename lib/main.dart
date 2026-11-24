@@ -75,6 +75,7 @@ class MotorModel {
   String lowVelocityThreshold = '0.0';
   String stallConfirmSeconds = '0.0';
   String stuckDurationSeconds = '0.0';
+  bool useStuckDurationSeconds = false;
   bool useStallDetection = false;
   bool todoStallDetection = false;
 }
@@ -1249,7 +1250,9 @@ class JavaCodeGenerator {
         sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};${_todo(motor.todoStallDetection)}');
         sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};${_todo(motor.todoStallDetection)}');
         sb.writeln('        public static final double ${mConst}_STALL_CONFIRM_SECONDS = ${motor.stallConfirmSeconds};${_todo(motor.todoStallDetection)}');
-        sb.writeln('        public static final double ${mConst}_STUCK_DURATION_SECONDS = ${motor.stuckDurationSeconds};${_todo(motor.todoStallDetection)}');
+        if (motor.useStuckDurationSeconds) {
+          sb.writeln('        public static final double ${mConst}_STUCK_DURATION_SECONDS = ${motor.stuckDurationSeconds};${_todo(motor.todoStallDetection)}');
+        }
       }
 
       sb.writeln('');
@@ -1283,7 +1286,7 @@ class JavaCodeGenerator {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
       }
       if (motor.useStallDetection) {
-         sb.write('\n            .withDetectStall(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_STALL_CONFIRM_SECONDS, ${mConst}_STUCK_DURATION_SECONDS)');
+        sb.write('\n            .withDetectStall(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_STALL_CONFIRM_SECONDS${(motor.useStuckDurationSeconds) ? ', ${mConst}_STUCK_DURATION_SECONDS' : ''})');
       }
       sb.writeln(';');
       sb.writeln('');
@@ -2162,7 +2165,7 @@ class JavaCodeGenerator {
     }
     sb.writeln('');
     sb.writeln('    RobotPose.initialize(');
-    sb.writeln('      ${capitalize(chassis.name)}ChassisConstants.STATE_STD, ');
+    sb.writeln('      ${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${capitalize(chassis.name)}ChassisConstants'}.STATE_STD, ');
     sb.writeln('      VisionConstants.visionConfig);');
     sb.writeln('');
     sb.writeln('    configureBindings();');
