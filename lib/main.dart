@@ -1472,7 +1472,35 @@ class JavaCodeGenerator {
       sb.writeln('');
       if (mech.statesType == 'fixed states') {
         sb.writeln('        private final double[] values;');
-        sb.writeln('        private ${mechNameCap}States(double... vals) { this.values = vals; }');
+        List<String> params = [];
+        List<String> argNames = [];
+        for (var motor in mech.motors) {
+          String? defaultMode = mech.defaultControlModes[motor.name];
+          String suffix;
+          if (defaultMode == null || defaultMode.isEmpty) {
+            suffix = 'Value';
+          } else {
+            String mode = defaultMode;
+            if (mode == 'DUTYCYCLE') {
+              mode = 'POWER';
+            } else if (mode == 'MAGIC_MOTION' || mode == 'POSITION_VOLTAGE') {
+              mode = 'POSITION';
+            }
+            suffix = mode
+                .split(RegExp(r'[\s_\-]+'))
+                .where((part) => part.isNotEmpty)
+                .map((part) => capitalize(part.toLowerCase()))
+                .join();
+          }
+          String motorCamel = capitalize(motor.name);
+          if (motorCamel.isNotEmpty) {
+            motorCamel = motorCamel[0].toLowerCase() + motorCamel.substring(1);
+          }
+          String paramName = '$motorCamel$suffix';
+          params.add('double $paramName');
+          argNames.add(paramName);
+        }
+        sb.writeln('        private ${mechNameCap}States(${params.join(', ')}) { this.values = new double[] {${argNames.join(', ')}}; }');
         sb.writeln('        @Override public double[] getValues() { return values; }');
       } else {
         sb.writeln('        @Override public double[] getValues() {');
