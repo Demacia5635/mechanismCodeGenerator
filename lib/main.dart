@@ -295,7 +295,6 @@ class RobotContainerModel {
   String controllerType = 'PS5';
   bool useAnotherChassis = false;
   String anotherChassisClassName = '';
-  bool useAnotherVision = false;
 }
 
 class FirstCharNotDigitFormatter extends TextInputFormatter {
@@ -1944,7 +1943,7 @@ class JavaCodeGenerator {
     return sb.toString();
   }
 
-  static String generateChassisConstants(ChassisModel chassis) {
+  static String generateChassisConstants(ChassisModel chassis, VisionModel vision) {
     StringBuffer sb = StringBuffer();
     
     String className = '${capitalize(chassis.name)}ChassisConstants';
@@ -1969,6 +1968,30 @@ class JavaCodeGenerator {
     sb.writeln('import frc.demacia.utils.motors.BaseMotorConfig.Canbus;');
     sb.writeln('import frc.demacia.utils.sensors.CancoderConfig;');
     sb.writeln('import frc.demacia.utils.sensors.PigeonConfig;');
+    sb.writeln('import edu.wpi.first.math.geometry.Rotation3d;');
+    sb.writeln('import edu.wpi.first.math.geometry.Transform3d;');
+    sb.writeln('import edu.wpi.first.math.geometry.Translation3d;');
+    sb.writeln('import frc.demacia.RobotPose.Vision.VisionConfig;');
+
+    bool hasLimelight2d = false;
+    bool hasLimelight3d = false;
+    bool hasQuest = false;
+
+    for (var Source in vision.sources) {
+      if (Source.type == 'Limelight 2D') hasLimelight2d = true;
+      if (Source.type == 'Limelight 3D') hasLimelight3d = true;
+      if (Source.type == 'Quest') hasQuest = true;
+    }
+
+    if (hasLimelight2d) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera2dConfig;');
+    }
+    if (hasLimelight3d) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera3dConfig;');
+    }
+    if (hasQuest) {
+      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.QuestConfig;');
+    }
     sb.writeln('');
     sb.writeln('public class $className {');
     sb.writeln('');
@@ -2053,49 +2076,7 @@ class JavaCodeGenerator {
     sb.writeln('    }');
     sb.writeln('    return ans;');
     sb.writeln('  }');
-    sb.writeln('}');
-
-    return sb.toString();
-  }
-
-  static String generateVisionConstants(VisionModel vision) {
-    StringBuffer sb = StringBuffer();
-    
-    String className = 'VisionConstants';
-
-    sb.writeln('package frc.robot.vision;');
-    sb.writeln('');
-    
-    sb.writeln('import org.ejml.simple.SimpleMatrix;');
-    sb.writeln('import edu.wpi.first.math.Matrix;');
-    sb.writeln('import edu.wpi.first.math.geometry.Rotation3d;');
-    sb.writeln('import edu.wpi.first.math.geometry.Transform3d;');
-    sb.writeln('import edu.wpi.first.math.geometry.Translation3d;');
-    sb.writeln('import edu.wpi.first.math.numbers.N1;');
-    sb.writeln('import edu.wpi.first.math.numbers.N3;');
-    sb.writeln('import frc.demacia.RobotPose.Vision.VisionConfig;');
-
-    bool hasLimelight2d = false;
-    bool hasLimelight3d = false;
-    bool hasQuest = false;
-
-    for (var Source in vision.sources) {
-      if (Source.type == 'Limelight 2D') hasLimelight2d = true;
-      if (Source.type == 'Limelight 3D') hasLimelight3d = true;
-      if (Source.type == 'Quest') hasQuest = true;
-    }
-
-    if (hasLimelight2d) {
-      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera2dConfig;');
-    }
-    if (hasLimelight3d) {
-      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.LimelightTagCamera3dConfig;');
-    }
-    if (hasQuest) {
-      sb.writeln('import frc.demacia.RobotPose.Vision.visionConfigs.QuestConfig;');
-    }
-    sb.writeln('');
-    sb.writeln('public class $className {');
+    sb.writeln('  public class VisionConstants {');
     sb.writeln('');
 
     for (var source in vision.sources) {
@@ -2113,22 +2094,23 @@ class JavaCodeGenerator {
         type = 'Quest';
       }
 
-      sb.writeln('    public static final String ${constName}_NAME = "${source.name}";');
-      sb.writeln('    public static final Transform3d ${constName}_OFFSET = new Transform3d(');
-      sb.writeln('        new Translation3d(${source.offsetX}, ${source.offsetY}, ${source.offsetZ}),${_todo(source.todoOffsets)}');
-      sb.writeln('        new Rotation3d(${source.offsetRoll}, ${source.offsetPitch}, ${source.offsetYaw}));${_todo(source.todoOffsets)}');
-      sb.writeln('    public static final Matrix<N3, N1> ${constName}_STD = new Matrix<>(new SimpleMatrix(new double[] { ${source.stdX}, ${source.stdY}, ${source.stdZ} }));${_todo(source.todoStd)}');
-      sb.writeln('    public static final ${type}Config ${constName}_CONFIG = new ${type}Config(${constName}_NAME, ${constName}_OFFSET, ${constName}_STD);');
+      sb.writeln('      public static final String ${constName}_NAME = "${source.name}";');
+      sb.writeln('      public static final Transform3d ${constName}_OFFSET = new Transform3d(');
+      sb.writeln('          new Translation3d(${source.offsetX}, ${source.offsetY}, ${source.offsetZ}),${_todo(source.todoOffsets)}');
+      sb.writeln('          new Rotation3d(${source.offsetRoll}, ${source.offsetPitch}, ${source.offsetYaw}));${_todo(source.todoOffsets)}');
+      sb.writeln('      public static final Matrix<N3, N1> ${constName}_STD = new Matrix<>(new SimpleMatrix(new double[] { ${source.stdX}, ${source.stdY}, ${source.stdZ} }));${_todo(source.todoStd)}');
+      sb.writeln('      public static final ${type}Config ${constName}_CONFIG = new ${type}Config(${constName}_NAME, ${constName}_OFFSET, ${constName}_STD);');
       sb.writeln('');
     }
 
-    sb.writeln('    public static final VisionConfig visionConfig = new VisionConfig()');
+    sb.writeln('      public static final VisionConfig visionConfig = new VisionConfig()');
     for (var source in vision.sources) {
       String constName = constantize(source.name);
     
-      sb.writeln('        .addSource(${constName}_CONFIG)');
+      sb.writeln('          .addSource(${constName}_CONFIG)');
     }
-    sb.writeln('        ;');
+    sb.writeln('          ;');
+    sb.writeln('  }');
     sb.writeln('}');
 
     return sb.toString();
@@ -2146,7 +2128,6 @@ class JavaCodeGenerator {
     sb.writeln('import frc.demacia.utils.controller.CommandController.ControllerType;');
     sb.writeln('import edu.wpi.first.wpilibj2.command.Command;');
     sb.writeln('import frc.demacia.RobotPose.RobotPose;');
-    sb.writeln('import frc.robot.vision.VisionConstants;');
     if (chassis.makeChassis || robotContainer.useAnotherChassis) {
       sb.writeln('import frc.demacia.utils.chassis.Chassis;');
       sb.writeln('import frc.demacia.utils.chassis.DriveCommand;');
@@ -2194,7 +2175,7 @@ class JavaCodeGenerator {
     sb.writeln('');
     sb.writeln('    RobotPose.initialize(');
     sb.writeln('      ${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${capitalize(chassis.name)}ChassisConstants'}.STATE_STD, ');
-    sb.writeln('      VisionConstants.visionConfig);');
+    sb.writeln('      ${robotContainer.useAnotherChassis ? robotContainer.anotherChassisClassName : '${capitalize(chassis.name)}ChassisConstants'}.VisionConstants.visionConfig);');
     sb.writeln('');
     sb.writeln('    configureBindings();');
     sb.writeln('    setDefaultCommands();');
