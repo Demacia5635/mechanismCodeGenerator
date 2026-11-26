@@ -29,18 +29,25 @@ class MotorModel {
   
   bool brakeMode = true;
   bool todoBrakeMode = false;
+  
+  String maxCurrent = '10.0'; 
+  bool todoMaxCurrent = false;
 
   String maxVolt = '12.0'; 
   bool useMaxVolt = false;
   bool todoMaxVolt = false;
   
-  String maxCurrent = '40.0'; 
-  bool useMaxCurrent = false;
-  bool todoMaxCurrent = false;
-  
   String rampUpTime = '0.3'; 
   bool useRampUpTime = false;
   bool todoRampUpTime = false;
+
+  // Grouped Stall Detection
+  String highCurrentThreshold = '10.0'; 
+  String lowVelocityThreshold = '0.5';
+  String stallConfirmSeconds = '0.2';
+  String stuckDurationSeconds = '0.2';
+  bool useStuckDurationSeconds = false;
+  bool todoStallDetection = false;
 
   bool useRadiansMotor = false;
   String gearRatio = '1.0';
@@ -69,15 +76,6 @@ class MotorModel {
   String maxJerk = '0.0';
   bool useMotionMagic = false;
   bool todoMotionMagic = false;
-  
-  // Grouped Stall Detection
-  String highCurrentThreshold = '0.0'; 
-  String lowVelocityThreshold = '0.0';
-  String stallConfirmSeconds = '0.0';
-  String stuckDurationSeconds = '0.0';
-  bool useStuckDurationSeconds = false;
-  bool useStallDetection = false;
-  bool todoStallDetection = false;
 }
 
 class SensorModel {
@@ -971,10 +969,10 @@ class AutoCheckField extends StatefulWidget {
   final String label;
   final String initialValue;
   final String defaultValue;
-  final bool initialUse;
+  final bool? initialUse;
   final bool initialTodo;
   final Function(String) onChanged;
-  final Function(bool) onUseChanged;
+  final Function(bool)? onUseChanged;
   final Function(bool) onTodoChanged;
 
   const AutoCheckField({
@@ -982,10 +980,10 @@ class AutoCheckField extends StatefulWidget {
     required this.label,
     required this.initialValue,
     required this.defaultValue,
-    required this.initialUse,
+    this.initialUse,
     required this.initialTodo,
     required this.onChanged,
-    required this.onUseChanged,
+    this.onUseChanged,
     required this.onTodoChanged,
   }) : super(key: key);
 
@@ -1002,7 +1000,7 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
-    isChecked = widget.initialUse;
+    isChecked = widget.initialUse ?? true;
     isTodo = widget.initialTodo;
   }
 
@@ -1018,13 +1016,14 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Checkbox(
-            value: isChecked,
-            onChanged: (val) {
-              setState(() => isChecked = val ?? false);
-              widget.onUseChanged(isChecked);
-            },
-          ),
+          if (widget.initialUse != null)
+            Checkbox(
+              value: isChecked,
+              onChanged: (val) {
+                setState(() => isChecked = val ?? false);
+                widget.onUseChanged?.call(isChecked);
+              },
+            ),
           IconButton(
             icon: Icon(
               isTodo ? Icons.flag : Icons.outlined_flag,
@@ -1053,7 +1052,7 @@ class _AutoCheckFieldState extends State<AutoCheckField> {
                 bool changedFromDefault = double.tryParse(val) != double.tryParse(widget.defaultValue);
                 if (changedFromDefault && !isChecked) {
                   setState(() => isChecked = true);
-                  widget.onUseChanged(true);
+                  widget.onUseChanged?.call(true);
                 }
               },
             ),
@@ -1129,6 +1128,17 @@ class JavaCodeGenerator {
         var autoCal = mech.autoCalibrations.where((c) => c.motorName == name).firstOrNull;
         if (autoCal != null) {
           autoCal.motorName += ' motor';
+        }
+        if (mech.settersControlModes.containsKey(name)) {
+          mech.settersControlModes['$name motor'] = mech.settersControlModes.remove(name)!;
+        }
+        if (mech.defaultControlModes.containsKey(name)) {
+          mech.defaultControlModes['$name motor'] = mech.defaultControlModes.remove(name)!;
+        }
+        for (var state in mech.states) {
+          if (state.motorValues.containsKey(name)) {
+            state.motorValues['$name motor'] = state.motorValues.remove(name)!;
+          }
         }
       }
     }
@@ -1210,11 +1220,9 @@ class JavaCodeGenerator {
       sb.writeln('        public static final boolean ${mConst}_BRAKE = ${motor.brakeMode};${_todo(motor.todoBrakeMode)}');
       sb.writeln('        public static final boolean ${mConst}_INVERT = ${motor.inverted};${_todo(motor.todoInverted)}');
       
+      sb.writeln('        public static final double ${mConst}_MAX_CURRENT = ${motor.maxCurrent};${_todo(motor.todoMaxCurrent)}');
       if (motor.useMaxVolt) {
         sb.writeln('        public static final double ${mConst}_MAX_VOLTAGE = ${motor.maxVolt};${_todo(motor.todoMaxVolt)}');
-      }
-      if (motor.useMaxCurrent) {
-        sb.writeln('        public static final double ${mConst}_MAX_CURRENT = ${motor.maxCurrent};${_todo(motor.todoMaxCurrent)}');
       }
       if (motor.useRampUpTime) {
         sb.writeln('        public static final double ${mConst}_RAMP_UP_TIME = ${motor.rampUpTime};${_todo(motor.todoRampUpTime)}');
@@ -1245,13 +1253,11 @@ class JavaCodeGenerator {
         sb.writeln('        public static final double ${mConst}_MAX_ACCELERATION = ${motor.maxAcceleration};${_todo(motor.todoMotionMagic)}');
         sb.writeln('        public static final double ${mConst}_MAX_JERK = ${motor.maxJerk};${_todo(motor.todoMotionMagic)}');
       }
-      if (motor.useStallDetection) {
-        sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};${_todo(motor.todoStallDetection)}');
-        sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};${_todo(motor.todoStallDetection)}');
-        sb.writeln('        public static final double ${mConst}_STALL_CONFIRM_SECONDS = ${motor.stallConfirmSeconds};${_todo(motor.todoStallDetection)}');
-        if (motor.useStuckDurationSeconds) {
-          sb.writeln('        public static final double ${mConst}_STUCK_DURATION_SECONDS = ${motor.stuckDurationSeconds};${_todo(motor.todoStallDetection)}');
-        }
+      sb.writeln('        public static final double ${mConst}_HIGH_CURRENT_THRESHOLD = ${motor.highCurrentThreshold};${_todo(motor.todoStallDetection)}');
+      sb.writeln('        public static final double ${mConst}_LOW_VELOCITY_THRESHOLD = ${motor.lowVelocityThreshold};${_todo(motor.todoStallDetection)}');
+      sb.writeln('        public static final double ${mConst}_STALL_CONFIRM_SECONDS = ${motor.stallConfirmSeconds};${_todo(motor.todoStallDetection)}');
+      if (motor.useStuckDurationSeconds) {
+        sb.writeln('        public static final double ${mConst}_STUCK_DURATION_SECONDS = ${motor.stuckDurationSeconds};${_todo(motor.todoStallDetection)}');
       }
 
       sb.writeln('');
@@ -1261,11 +1267,9 @@ class JavaCodeGenerator {
       sb.writeln('            .withBrake(${mConst}_BRAKE)');
       sb.write('            .withInvert(${mConst}_INVERT)');
 
+      sb.write('\n            .withCurrent(${mConst}_MAX_CURRENT)');
       if (motor.useMaxVolt) {
         sb.write('\n            .withVolts(${mConst}_MAX_VOLTAGE)');
-      }
-      if (motor.useMaxCurrent) {
-        sb.write('\n            .withCurrent(${mConst}_MAX_CURRENT)');
       }
       if (motor.useRampUpTime) {
         sb.write('\n            .withRampTime(${mConst}_RAMP_UP_TIME)');
@@ -1284,9 +1288,7 @@ class JavaCodeGenerator {
       if (motor.useMotionMagic) {
          sb.write('\n            .withMotionParam(${mConst}_MAX_VELOCITY, ${mConst}_MAX_ACCELERATION, ${mConst}_MAX_JERK)');
       }
-      if (motor.useStallDetection) {
-        sb.write('\n            .withDetectStall(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_STALL_CONFIRM_SECONDS${(motor.useStuckDurationSeconds) ? ', ${mConst}_STUCK_DURATION_SECONDS' : ''})');
-      }
+      sb.write('\n            .withDetectStall(${mConst}_HIGH_CURRENT_THRESHOLD, ${mConst}_LOW_VELOCITY_THRESHOLD, ${mConst}_STALL_CONFIRM_SECONDS${(motor.useStuckDurationSeconds) ? ', ${mConst}_STUCK_DURATION_SECONDS' : ''})');
       sb.writeln(';');
       sb.writeln('');
 
@@ -1705,13 +1707,11 @@ class JavaCodeGenerator {
     }
 
     for (var motor in mech.motors) {
-      if (motor.useStallDetection) {
-        String mConst = constantize(motor.name);
-        String motorNameCap = capitalize(motor.name);
-        sb.writeln('    public boolean isStuck${motorNameCap}() {');
-        sb.writeln('        return getMotor(${mConst}_NAME).isStuck();');
-        sb.writeln('    }');
-      }
+      String mConst = constantize(motor.name);
+      String motorNameCap = capitalize(motor.name);
+      sb.writeln('    public boolean isStuck${motorNameCap}() {');
+      sb.writeln('        return getMotor(${mConst}_NAME).isStuck();');
+      sb.writeln('    }');
     }
     
     if (mech.useStates && mech.statesType == 'dynamic states') {

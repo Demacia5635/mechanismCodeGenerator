@@ -43,6 +43,11 @@ class _MechanismEditorPageState extends State<MechanismEditorPage> {
         if (widget.mechanism.defaultControlModes.containsKey(oldName)) {
           widget.mechanism.defaultControlModes[motor.name] = widget.mechanism.defaultControlModes.remove(oldName)!;
         }
+        for (var state in widget.mechanism.states) {
+          if (state.motorValues.containsKey(oldName)) {
+            state.motorValues[motor.name] = state.motorValues.remove(oldName)!;
+          }
+        }
       }
     });
   }

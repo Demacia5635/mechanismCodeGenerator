@@ -129,6 +129,14 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
           const Divider(height: 32),
 
           AutoCheckField(
+            label: 'Max Current',
+            initialValue: widget.motor.maxCurrent.toString(),
+            defaultValue: '10.0',
+            initialTodo: widget.motor.todoMaxCurrent,
+            onChanged: (val) => widget.motor.maxCurrent = val,
+            onTodoChanged: (todo) => widget.motor.todoMaxCurrent = todo,
+          ),
+          AutoCheckField(
             label: 'Max Voltage',
             initialValue: widget.motor.maxVolt.toString(),
             defaultValue: '12.0',
@@ -139,16 +147,6 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             onTodoChanged: (todo) => widget.motor.todoMaxVolt = todo,
           ),
           AutoCheckField(
-            label: 'Max Current',
-            initialValue: widget.motor.maxCurrent.toString(),
-            defaultValue: '40.0',
-            initialUse: widget.motor.useMaxCurrent,
-            initialTodo: widget.motor.todoMaxCurrent,
-            onChanged: (val) => widget.motor.maxCurrent = val,
-            onUseChanged: (checked) => widget.motor.useMaxCurrent = checked,
-            onTodoChanged: (todo) => widget.motor.todoMaxCurrent = todo,
-          ),
-          AutoCheckField(
             label: 'Ramp Up Time',
             initialValue: widget.motor.rampUpTime.toString(),
             defaultValue: '0.3',
@@ -157,6 +155,40 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             onChanged: (val) => widget.motor.rampUpTime = val,
             onUseChanged: (checked) => widget.motor.useRampUpTime = checked,
             onTodoChanged: (todo) => widget.motor.todoRampUpTime = todo,
+          ),
+
+          const Divider(height: 32),
+
+          _buildGroupHeader(
+            title: 'Stall Detection',
+            isTodo: widget.motor.todoStallDetection,
+            onTodoChanged: (val) => setState(() => widget.motor.todoStallDetection = val),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16, runSpacing: 16,
+            children: [
+              _buildGroupedTextField(
+                label: 'High Current Threshold', initialValue: widget.motor.highCurrentThreshold, defaultValue: 10.0,
+                onChanged: (v) => widget.motor.highCurrentThreshold = v,
+              ),
+              _buildGroupedTextField(
+                label: 'Low Velocity Threshold', initialValue: widget.motor.lowVelocityThreshold, defaultValue: 0.5,
+                onChanged: (v) => widget.motor.lowVelocityThreshold = v,
+              ),
+              _buildGroupedTextField(
+                label: 'stall Confirm Seconds', initialValue: widget.motor.stallConfirmSeconds, defaultValue: 0.2,
+                onChanged: (v) => widget.motor.stallConfirmSeconds = v,
+              ),
+              _buildGroupedTextField(
+                label: 'Stuck Duration Seconds', initialValue: widget.motor.stuckDurationSeconds, defaultValue: 0.2,
+                onChanged: (v) => widget.motor.stuckDurationSeconds = v,
+                leading: Checkbox(
+                  value: widget.motor.useStuckDurationSeconds,
+                  onChanged: (val) => setState(() => widget.motor.useStuckDurationSeconds = val ?? false),
+                ),
+              ),
+            ],
           ),
 
           const Divider(height: 32),
@@ -343,46 +375,6 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
             ],
           ),
 
-          const Divider(height: 32),
-
-          _buildGroupHeader(
-            title: 'Stall Detection',
-            isUsed: widget.motor.useStallDetection,
-            isTodo: widget.motor.todoStallDetection,
-            onUseChanged: (val) => setState(() => widget.motor.useStallDetection = val),
-            onTodoChanged: (val) => setState(() => widget.motor.todoStallDetection = val),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 16, runSpacing: 16,
-            children: [
-              _buildGroupedTextField(
-                label: 'High Current Threshold', initialValue: widget.motor.highCurrentThreshold, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.highCurrentThreshold = v,
-                markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
-              ),
-              _buildGroupedTextField(
-                label: 'Low Velocity Threshold', initialValue: widget.motor.lowVelocityThreshold, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.lowVelocityThreshold = v,
-                markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
-              ),
-              _buildGroupedTextField(
-                label: 'stall Confirm Seconds', initialValue: widget.motor.stallConfirmSeconds, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.stallConfirmSeconds = v,
-                markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
-              ),
-              _buildGroupedTextField(
-                label: 'Stuck Duration Seconds', initialValue: widget.motor.stuckDurationSeconds, defaultValue: 0.0,
-                onChanged: (v) => widget.motor.stuckDurationSeconds = v,
-                markAsUsed: () => setState(() => widget.motor.useStallDetection = true),
-                leading: Checkbox(
-                  value: widget.motor.useStuckDurationSeconds,
-                  onChanged: (val) => setState(() {widget.motor.useStallDetection = true; widget.motor.useStuckDurationSeconds = val ?? false;}),
-                ),
-              ),
-            ],
-          ),
-
           const SizedBox(height: 400)
         ],
       ),
@@ -404,17 +396,18 @@ class _MotorEditorPageState extends State<MotorEditorPage> {
 
   Widget _buildGroupHeader({
     required String title,
-    required bool isUsed,
+    bool? isUsed,
     required bool isTodo,
-    required Function(bool) onUseChanged,
+    Function(bool)? onUseChanged,
     required Function(bool) onTodoChanged,
   }) {
     return Row(
       children: [
-        Checkbox(
-          value: isUsed,
-          onChanged: (val) => onUseChanged(val ?? false),
-        ),
+        if (isUsed != null && onUseChanged != null)
+          Checkbox(
+            value: isUsed,
+            onChanged: (val) => onUseChanged(val ?? false),
+          ),
         _buildTodoFlag(
           isTodo: isTodo,
           onChanged: onTodoChanged,
