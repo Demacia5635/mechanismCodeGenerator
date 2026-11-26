@@ -1994,7 +1994,6 @@ class JavaCodeGenerator {
     }
     sb.writeln('');
     sb.writeln('public class $className {');
-    sb.writeln('');
     sb.writeln('  public static final String NAME = "$constName";');
     sb.writeln('');
     sb.writeln('  public static final int PIGEON_ID = ${int.tryParse(chassis.pigeonId) ?? 0};${_todo(chassis.todoPigeonId)}');
@@ -2061,15 +2060,18 @@ class JavaCodeGenerator {
     sb.writeln('          new TalonFXConfig(name + " Steer", i * 3 + 2, CAN_BUS)');
     sb.writeln('              .withPID(STEER_KP, STEER_KI, STEER_KD, STEER_KS, STEER_KV, STEER_KA, 0, 0, 0)');
     sb.writeln('              .withBrake(true)');
-    sb.writeln('              .withInvert(true)');
+    sb.writeln('              .withInvert(false) //TODO');
+    sb.writeln('              .withCurrent(40)');
     sb.writeln('              .withRadiansMotor(STEER_GEAR_RATIO)');
     sb.writeln('              .withRampTime(RAMP_TIME_STEER),');
     sb.writeln('          new TalonFXConfig(name + " Drive", i * 3 + 1, CAN_BUS)');
     sb.writeln('              .withPID(DRIVE_KP, DRIVE_KI, DRIVE_KD, DRIVE_KS, DRIVE_KV, DRIVE_KA, 0, 0, 0)');
     sb.writeln('              .withBrake(true)');
+    sb.writeln('              .withInvert(false) //TODO');
+    sb.writeln('              .withCurrent(40)');
     sb.writeln('              .withMeterMotor(DRIVE_GEAR_RATIO, WHEEL_DIAMETER),');
     sb.writeln('          new CancoderConfig(name + " Cancoder", i * 3 + 3, CAN_BUS)');
-    sb.writeln('            .withInvert(false))');
+    sb.writeln('            .withInvert(false)) //TODO');
     sb.writeln('          .withPosion(MODULE_LOCATIONS[i])');
     sb.writeln('          .withSteerOffset(offsets[i])');
     sb.writeln('          .withMetersFrom360Degs(METERS_FROM_360_DEGS);');
@@ -2077,7 +2079,6 @@ class JavaCodeGenerator {
     sb.writeln('    return ans;');
     sb.writeln('  }');
     sb.writeln('  public class VisionConstants {');
-    sb.writeln('');
 
     for (var source in vision.sources) {
       String constName = constantize(source.name);
